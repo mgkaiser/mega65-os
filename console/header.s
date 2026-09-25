@@ -1,0 +1,11 @@
+        .section .module_header,"a"
+        .globl _console_init
+        .globl _console_clear
+        .globl _console_write
+        .word $4d36
+        .byte 1
+        .byte 1
+        .word __module_image_size
+        .word _console_init-$c000
+        .word _console_clear-$c000
+        .word _console_write-$c000
