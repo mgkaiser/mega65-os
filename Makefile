@@ -1,8 +1,10 @@
-COMPONENTS := kernel loader
+COMPONENTS := kernel console loader
 .PHONY: all clean $(COMPONENTS)
 all: $(COMPONENTS)
-loader: kernel
+loader: kernel console
 	$(MAKE) -C loader
+console:
+	$(MAKE) -C console
 kernel:
 	$(MAKE) -C kernel
 clean:
