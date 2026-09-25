@@ -1,33 +1,22 @@
 # Building MEGA65 OS
 
-MEGA65 OS uses **LLVM-MOS/Clang** as the Phase-1 reference compiler. The build expects the MEGA65 driver program `mos-mega65-clang`.
+MEGA65 OS uses **LLVM-MOS/Clang** as the Phase-1 reference compiler. The build expects `mos-mega65-clang`.
 
 ## Install LLVM-MOS
-
-Download and install the LLVM-MOS SDK from the official project:
 
 - LLVM-MOS: https://llvm-mos.org/
 - SDK releases: https://github.com/llvm-mos/llvm-mos-sdk/releases
 
-Prebuilt SDKs are available for Linux, macOS, and Windows. The MEGA65 toolchain documentation also confirms that LLVM-MOS supports the 45GS02 CPU with `-mcpu=mos45gs02`.
-
-A typical Linux install using the current prebuilt SDK is:
+A typical Linux install:
 
 ```sh
 wget https://github.com/llvm-mos/llvm-mos-sdk/releases/latest/download/llvm-mos-linux.tar.xz
 tar xf llvm-mos-linux.tar.xz -C "$HOME"
 export PATH="$HOME/llvm-mos/bin:$PATH"
-```
-
-For macOS or Windows, use the corresponding SDK asset from the releases page and add its `bin` directory to `PATH`.
-
-Verify the compiler is visible:
-
-```sh
 mos-mega65-clang --version
 ```
 
-## Clone and build
+## Build
 
 ```sh
 git clone https://github.com/mgkaiser/mega65-os.git
@@ -35,46 +24,24 @@ cd mega65-os
 make
 ```
 
-The root Makefile builds the kernel first and then the transition loader.
-
-Expected build products:
+The root build now produces:
 
 ```text
 kernel/kernel.bin
+console/console.bin
 loader/loader.prg
 ```
 
-To clean:
+The boot medium must make `kernel.bin` and `console.bin` available by those names to the transition loader. The loader preloads the kernel at `$E000` and the console module at physical `$020000`, then publishes their extents in the versioned boot manifest.
 
-```sh
-make clean
-```
+Individual targets are `make kernel`, `make console`, and `make loader`.
 
-To build one component:
-
-```sh
-make kernel
-make loader
-```
-
-The kernel build is freestanding and currently uses:
-
-```text
--Os
--ffreestanding
--fno-builtin
--mcpu=mos45gs02
--nostdlib
-```
-
-The kernel Makefile enforces the architectural **8192-byte resident-nucleus limit**.
+The kernel is limited to 8192 resident bytes. The bootstrap console is additionally limited to 4096 executable bytes because bring-up currently exposes the conventional `$D000-$DFFF` I/O aperture while the driver executes in Page 6.
 
 ## Current bring-up status
 
-The project is in early bring-up. A successful host build does not yet imply a bootable OS image.
-
-In particular, the documented architecture now places the resident nucleus at `$E000-$FFFF`, while some current loader/linker implementation still reflects the earlier `$4000` bring-up address. That migration and hardware/emulator validation are active project work. Do not treat the present binaries as release images until those tasks are complete.
+These sources have not yet been validated by a successful LLVM-MOS build or MEGA65/Xemu boot in this repository workflow. Treat linker-script syntax, compiler ABI details and hardware behaviour as requiring that validation before calling the image bootable.
 
 ## Hardware authority
 
-For MEGA65 hardware and Hypervisor behavior, the project's design work treats `mega65-book.pdf` as the authoritative hardware reference. Implementation should distinguish documented hardware behavior from OS policy and from behavior that still requires measurement on hardware/emulator.
+`mega65-book.pdf` is the authoritative hardware reference. Implementation must distinguish documented hardware behaviour from OS policy and from behaviour still requiring measurement.
