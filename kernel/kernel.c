@@ -1,31 +1,27 @@
-/* MEGA65 OS phase-1 kernel proper.
- *
- * Machine entry and interrupt veneers live in startup.s. C begins only after
- * _kernel_start has established the kernel execution environment.
- */
 #include "brk.h"
 #include "mapper.h"
+#include "kmodule.h"
+#include "vm_bootstrap.h"
+#include "bootinfo.h"
+
+static const char banner[] = "MEGA65 OS\nNative kernel online.\n";
 
 __attribute__((noreturn))
 void kmain(void)
 {
-    /*
-     * The transition loader leaves a native, unmapped first-64K view.  From
-     * this point onward the kernel owns the MAP software shadow.
-     */
+    const struct vm_extent *console;
+    if(vm_bootstrap_from_loader(BOOTINFO)!=VM_BOOT_OK)
+        for(;;)__asm__ volatile("nop");
+
     kmap_init();
+    console=vm_boot_extent(BOOT_MODULE_CONSOLE);
+    if(!console) for(;;)__asm__ volatile("nop");
 
-    for (;;) {
-        __asm__ volatile ("nop");
-    }
-}
+    if(kmodule_console_init(console->phys_addr)!=KMODULE_OK)
+        for(;;)__asm__ volatile("nop");
+    kmodule_console_write(console->phys_addr,banner);
 
-void irq_dispatch(void)
-{
-    /* Phase 1: no IRQ sources enabled yet. */
+    for(;;)__asm__ volatile("nop");
 }
-
-void nmi_dispatch(void)
-{
-    /* Phase 1: catch NMI safely. Device-specific handling comes later. */
-}
+void irq_dispatch(void) {}
+void nmi_dispatch(void) {}
