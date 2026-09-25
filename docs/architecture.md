@@ -33,11 +33,34 @@ Names locate objects. Handles grant authority. Far pointers identify locations w
 
 Most OS services should be dynamically loadable. Only machinery required to load/page/schedule the rest must remain resident.
 
-## Resident Nucleus Size
+## Resident Nucleus and Logical Address Space
 
-The permanently resident kernel nucleus has a hard design target of **one 8 KiB extent**. Interrupt entry, BRK dispatch, the minimum scheduler/memory machinery required to make other components available, and other irreducible kernel mechanisms compete for this same budget. Policy-heavy code, filesystems, normal drivers, services, and optional facilities should remain pageable/loadable rather than growing the resident nucleus.
+The 64 KiB CPU view is organized as eight 8 KiB logical pages.
+
+- **Page 0, $0000-$1FFF:** active-thread page. A conventional initial layout places Base Page at $0000, the initial stack at $0100, and code/data beginning at $0200. The page is not globally fixed physical memory; switching its backing mapping can switch the active thread's immediate execution environment.
+- **Pages 1-5, $2000-$BFFF:** demand-paged process working-set windows.
+- **Page 6, $C000-$DFFF:** kernel extension/driver execution window.
+- **Page 7, $E000-$FFFF:** permanently resident kernel nucleus.
+
+The permanently resident kernel nucleus therefore has a hard design target of **one 8 KiB extent at $E000-$FFFF**. Interrupt entry, BRK dispatch, vectors, the minimum scheduler/memory machinery required to make other components available, and other irreducible kernel mechanisms compete for this same budget. The normal vectors at $FFFA-$FFFF naturally lie within the resident page.
 
 The build must enforce the 8 KiB resident-image limit so size pressure is visible immediately rather than becoming a late optimization project.
+
+Page 6 is principally an **execution window**, not the storage location for all kernel-extension state. Drivers, filesystems, networking, and other nonresident kernel components may keep code and persistent state in physical memory outside the current 64 KiB mapping. Persistent data remains accessible with 45GS02 flat/far loads and stores; an extension is mapped into Page 6 when its code must execute.
+
+This gives the nucleus an escape hatch without expanding its permanent footprint: Page 7 dispatches to pageable kernel code in Page 6, while Pages 0-5 remain the process/thread working set.
+
+## Access strategy
+
+MAP is primarily an execution and locality mechanism, not the default way to reach every out-of-map datum.
+
+The preferred hierarchy is:
+1. ordinary near access when the target is already mapped,
+2. 45GS02 flat/far loads and stores for sparse out-of-map access,
+3. MAP when repeated locality or executable code makes remapping worthwhile,
+4. DMAgic for bulk copy/fill/promotion.
+
+The same rule applies to device registers. A driver may use flat/far I/O for sparse register accesses even though each access is slower than a near access through the conventional $D000 aperture. Mapping/exposing I/O, performing a near access, and restoring the previous Page-6 environment has a fixed cost; therefore I/O should be mapped near only when a sufficiently dense sequence of accesses amortizes that cost. The crossover is a performance measurement, not an ABI assumption.
 
 ## Native software rule
 
