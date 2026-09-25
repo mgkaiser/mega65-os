@@ -5,23 +5,29 @@ This is deliberately provisional.
 ## Milestone 0 — verify hardware assumptions
 - hypervisor loading/takeover facilities
 - mapping granularity/capabilities
-- stack and zero-page relocation details
+- stack and Base-Page behavior
+- flat/far access to ordinary memory and physical I/O
 - DMAgic behavior
 - interrupt/vector behavior
+- benchmark sparse far-I/O versus temporary near-I/O mapping crossover
 
 ## Milestone 1 — takeover
 - launch transition loader
-- use stock Hyppo to load raw resident kernel image at $4000
+- use stock Hyppo to load raw resident kernel image at $E000
 - abandon inherited environment
 - enter assembly kernel entry, then C kernel
-- enforce the resident nucleus as a single 8 KiB extent
+- place normal vectors at $FFFA-$FFFF inside the resident image
+- enforce the resident nucleus as the single $E000-$FFFF 8 KiB extent
 
 ## Milestone 2 — nucleus
 - memory/object manager
 - 8K page machinery
+- establish Page 0 as the active-thread page
+- establish Pages 1-5 as demand-paged process working-set windows
+- establish Page 6 as the pageable kernel-extension execution window
 - timer IRQ
 - scheduler
-- threads with separate stack/zero page
+- threads with Page-0 Base Page/stack state
 - two preemptively scheduled C processes
 
 ## Milestone 3 — core OS
@@ -31,6 +37,8 @@ This is deliberately provisional.
 - shared memory
 - wait sets
 - `/dev`
+- pageable driver/kernel-extension loading through Page 6
+- flat/far driver-state and sparse physical-I/O access primitives
 - basic storage/VFS
 - executable binder
 
