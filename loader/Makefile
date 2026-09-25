@@ -1,5 +1,5 @@
 CC ?= mos-mega65-clang
-CFLAGS ?= -Os -ffreestanding -fno-builtin -Wall -Wextra
+CFLAGS ?= -Os -ffreestanding -fno-builtin -Wall -Wextra -I../include
 TARGET := loader.prg
 SOURCES := loader.c hyppo.s
 .PHONY: all clean
