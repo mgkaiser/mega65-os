@@ -1,13 +1,11 @@
 CC ?= mos-mega65-clang
-CFLAGS ?= -Os -ffreestanding -fno-builtin -Wall -Wextra -mcpu=mos45gs02
+CFLAGS ?= -Os -ffreestanding -fno-builtin -Wall -Wextra -mcpu=mos45gs02 -I../include
 LDFLAGS ?= -nostdlib -Wl,-T,link.ld
 TARGET := kernel.bin
-SOURCES := startup.s kernel.c brk.c mapper.c mapper.s
+SOURCES := startup.s kernel.c brk.c mapper.c mapper.s vm_bootstrap.c kmodule.c
 RESIDENT_LIMIT := 8192
-
 .PHONY: all clean
 all: $(TARGET)
-
 $(TARGET): $(SOURCES) link.ld
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SOURCES)
 	@size=$$(wc -c < $@); \
@@ -16,6 +14,5 @@ $(TARGET): $(SOURCES) link.ld
 		rm -f $@; exit 1; \
 	fi
 	@echo "resident kernel: $$(( $$(wc -c < $@) )) / $(RESIDENT_LIMIT) bytes"
-
 clean:
 	rm -f $(TARGET) *.o *.elf *.map
