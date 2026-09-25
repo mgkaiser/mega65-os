@@ -33,6 +33,12 @@ Names locate objects. Handles grant authority. Far pointers identify locations w
 
 Most OS services should be dynamically loadable. Only machinery required to load/page/schedule the rest must remain resident.
 
+## Resident Nucleus Size
+
+The permanently resident kernel nucleus has a hard design target of **one 8 KiB extent**. Interrupt entry, BRK dispatch, the minimum scheduler/memory machinery required to make other components available, and other irreducible kernel mechanisms compete for this same budget. Policy-heavy code, filesystems, normal drivers, services, and optional facilities should remain pageable/loadable rather than growing the resident nucleus.
+
+The build must enforce the 8 KiB resident-image limit so size pressure is visible immediately rather than becoming a late optimization project.
+
 ## Native software rule
 
 Native applications should not poke hardware registers directly by default. Hardware belongs to OS-controlled devices. Explicit capabilities/exclusive ownership can grant near-bare-metal access to games, demos, or specialized software.
