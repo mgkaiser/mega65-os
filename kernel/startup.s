@@ -18,7 +18,7 @@
 ; Kernel startup will make that invariant explicit before interrupts/BRK are
 ; enabled.  This must be revisited when the final 45GS02 stack ABI is frozen.
 
-        .text
+        .section .kernel_entry,"ax"
         .globl _kernel_start
         .globl _irq_brk_entry
         .globl _nmi_entry
