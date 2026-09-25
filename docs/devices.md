@@ -29,6 +29,31 @@ Device handles should support applicable operations such as:
 - map
 - blocking/wakeup/readiness
 
+## Driver execution and state
+
+Normal drivers and kernel extensions are not required to fit in the resident 8 KiB nucleus. Their executable extents are pageable and execute through the kernel's Page-6 window at $C000-$DFFF.
+
+Page 6 is an execution window, not a requirement that all driver memory live in the logical 64 KiB map. Persistent driver state, buffers, descriptors, and other objects may remain elsewhere in physical memory and be reached with 45GS02 flat/far loads and stores.
+
+This separation keeps the resident Page-7 nucleus small and makes clean driver code cheap to evict/remap.
+
+## Hardware register access
+
+Normal applications do not know hardware register addresses.
+
+Drivers have two native register-access strategies:
+
+- **Sparse I/O:** use 45GS02 flat/far loads and stores to physical I/O registers. Individual accesses are slower than near $D000 accesses, but no Page-6/I/O remapping round trip is required.
+- **Dense I/O:** when many consecutive accesses justify the setup cost, temporarily expose the conventional $D000 I/O aperture and use near loads/stores, then restore the previous mapping.
+
+The crossover should be measured. Drivers should not page/expose I/O for a single register access merely because near I/O is individually faster.
+
+This also means a hardware driver can normally keep its entire $C000-$DFFF executable extent mapped while touching hardware sparsely through flat addressing.
+
+Raw register/device mappings for applications require capabilities. High-performance games/demos can request exclusive hardware access while the scheduler and OS remain alive.
+
+Direct `$Dxxx` constants outside the architecture/device layer should be considered an architectural violation in native application code.
+
 ## Storage layering
 
     hardware
@@ -39,14 +64,6 @@ Device handles should support applicable operations such as:
       -> mounted namespace
 
 Keep raw devices separate from mounted filesystems.
-
-## Hardware access
-
-Normal applications do not know hardware register addresses.
-
-Raw register/device mappings require capabilities. High-performance games/demos can request exclusive hardware access while the scheduler and OS remain alive.
-
-Direct `$Dxxx` constants outside the architecture/device layer should be considered an architectural violation in native code.
 
 ## 1.x Floppy and Commodore Media
 
