@@ -4,10 +4,17 @@
  * _kernel_start has established the kernel execution environment.
  */
 #include "brk.h"
+#include "mapper.h"
 
 __attribute__((noreturn))
 void kmain(void)
 {
+    /*
+     * The transition loader leaves a native, unmapped first-64K view.  From
+     * this point onward the kernel owns the MAP software shadow.
+     */
+    kmap_init();
+
     for (;;) {
         __asm__ volatile ("nop");
     }
