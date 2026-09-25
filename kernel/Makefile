@@ -1,7 +1,7 @@
 CC ?= mos-mega65-clang
 CFLAGS ?= -Os -ffreestanding -fno-builtin -Wall -Wextra
 TARGET := kernel.prg
-SOURCES := startup.s kernel.c
+SOURCES := startup.s kernel.c brk.c
 
 .PHONY: all clean
 all: $(TARGET)
