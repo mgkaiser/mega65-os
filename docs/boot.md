@@ -6,17 +6,19 @@ Do not gradually coexist with the stock operating environment.
 
 The stock environment merely launches a tiny transition loader. That loader uses the MEGA65 hypervisor facilities to cross into our own environment as early as practical.
 
-The phase-1 implementation uses stock Hyppo's transfer-area, setname, and loadfile calls to load a raw `kernel.bin` at **$4000**, then disables compatibility-ROM write protection, establishes the native RAM/IO mapping, and transfers control directly to the kernel entry at $4000. Hyppo load failures halt the transition loader rather than jumping into an invalid image.
+The phase-1 implementation direction is to use stock Hyppo's transfer-area, setname, and loadfile calls to load a raw `kernel.bin` at **$E000**, then disable compatibility-ROM write protection, establish the native RAM/IO mapping, and transfer control directly to the kernel entry at $E000. Hyppo load failures halt the transition loader rather than jumping into an invalid image.
+
+The resident kernel occupies the top logical 8 KiB page, **$E000-$FFFF**. This naturally includes the normal NMI, RESET, and IRQ/BRK vectors at $FFFA-$FFFF. The linker should place and enforce these vectors inside the resident image and reject a nucleus that exceeds the single-page budget.
 
 Conceptually:
 
     RESET
       -> MEGA65 firmware/stock environment
       -> tiny transition loader
-      -> hypervisor loads MEGA65 OS bootstrap
-      -> inherited mappings/vectors/environment are abandoned
+      -> Hyppo loads resident kernel at $E000
+      -> inherited mappings/environment are abandoned
       -> bootstrap establishes our machine state
-      -> bootstrap loads kernel nucleus
+      -> Page 7 remains the resident nucleus
       -> normal OS loader/binder takes over
       -> init/session/console
 
@@ -32,17 +34,30 @@ Keep extremely small. Responsibilities only:
 
 It should not contain a filesystem, general executable loader, or normal OS functionality.
 
+## Initial logical map
+
+The intended native 1.x view after takeover is:
+
+    $0000-$1FFF   active-thread Page 0
+    $2000-$BFFF   demand-paged process Pages 1-5
+    $C000-$DFFF   pageable kernel extension Page 6
+    $E000-$FFFF   resident kernel Page 7
+
+Page 0 can conventionally contain Base Page at $0000, initial stack at $0100, and code/data from $0200. These are logical addresses backed by the active thread's mapped page rather than globally reserved physical RAM.
+
+Page 6 is used to execute drivers and kernel extensions that do not fit in the nucleus. Their persistent data can remain out of map and be accessed through 45GS02 flat/far addressing.
+
 ## Bootstrap
 
 Bootstrap responsibilities:
 - establish our memory map,
-- install our vectors,
+- install/confirm our vectors,
 - initialize enough DMA/storage machinery,
 - provide primitive allocation,
 - understand the boot container sufficiently to load required components,
 - instantiate the kernel nucleus and normal loader/binder.
 
-Once normal kernel facilities exist, bootstrap memory should be reclaimable.
+Once normal kernel facilities exist, bootstrap memory should be reclaimable except for machinery deliberately retained in the Page-7 nucleus.
 
 ## Boot image
 
