@@ -2,7 +2,7 @@
         .globl _console_init
         .globl _console_clear
         .globl _console_write
-        .word $4d36
+        .word $364d
         .byte 1
         .byte 1
         .word __module_image_size
