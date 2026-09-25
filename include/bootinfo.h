@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #define BOOTINFO_ADDRESS 0x0200u
-#define BOOTINFO_MAGIC 0x4d363542UL /* "M65B" little endian */
+#define BOOTINFO_MAGIC 0x4235364dUL /* bytes: M 6 5 B */
 #define BOOTINFO_VERSION 1
 #define BOOTINFO_MAX_MODULES 8
 
