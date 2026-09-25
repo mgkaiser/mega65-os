@@ -11,9 +11,10 @@ This is deliberately provisional.
 
 ## Milestone 1 — takeover
 - launch transition loader
-- hypervisor-load bootstrap
+- use stock Hyppo to load raw resident kernel image at $4000
 - abandon inherited environment
-- enter C bootstrap/kernel
+- enter assembly kernel entry, then C kernel
+- enforce the resident nucleus as a single 8 KiB extent
 
 ## Milestone 2 — nucleus
 - memory/object manager
