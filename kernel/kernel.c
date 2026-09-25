@@ -3,6 +3,7 @@
  * Machine entry and interrupt veneers live in startup.s. C begins only after
  * _kernel_start has established the kernel execution environment.
  */
+#include "brk.h"
 
 __attribute__((noreturn))
 void kmain(void)
@@ -15,14 +16,6 @@ void kmain(void)
 void irq_dispatch(void)
 {
     /* Phase 1: no IRQ sources enabled yet. */
-}
-
-void brk_dispatch(void)
-{
-    /* Phase 1: BRK is caught rather than falling into inherited ROM code. */
-    for (;;) {
-        __asm__ volatile ("nop");
-    }
 }
 
 void nmi_dispatch(void)
