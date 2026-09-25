@@ -3,12 +3,12 @@
  * mega65-book.pdf is authoritative for the public Hyppo ABI.
  *
  * The loader is intentionally disposable.  It asks stock Hyppo to load the
- * raw resident-kernel image at $4000, removes compatibility-ROM write
+ * raw resident-kernel image at $E000, removes compatibility-ROM write
  * protection, establishes our native RAM/IO mapping, and transfers control.
  */
 #include <stdint.h>
 
-#define KERNEL_ENTRY 0x4000u
+#define KERNEL_ENTRY 0xe000u
 
 /* Implemented in hyppo.s. Returns non-zero only if all three Hyppo calls
  * (setup transfer area, setname, loadfile) report success.
@@ -37,6 +37,11 @@ static void disable_rom_write_protect(void)
 
 static void establish_native_ram_map(void)
 {
+    /*
+     * Start from an unmapped first-64K RAM view.  Page 7 ($E000-$FFFF) then
+     * exposes the resident nucleus loaded by Hyppo.  Later memory-manager
+     * bring-up will explicitly own the Page-0..Page-6 MAP state.
+     */
     __asm__ volatile (
         "lda #$00\n"
         "tax\n"
@@ -71,10 +76,6 @@ int main(void)
 {
     copy_kernel_filename();
 
-    /*
-     * load_kernel_image() uses the inherited mapping while invoking Hyppo.
-     * Once kernel.bin is resident, the stock environment is no longer needed.
-     */
     if (!load_kernel_image())
         halt();
 
