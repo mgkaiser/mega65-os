@@ -1,7 +1,7 @@
 CC ?= mos-mega65-clang
 CFLAGS ?= -Os -ffreestanding -fno-builtin -Wall -Wextra
 TARGET := loader.prg
-SOURCES := loader.c
+SOURCES := loader.c hyppo.s
 .PHONY: all clean
 all: $(TARGET)
 $(TARGET): $(SOURCES)
