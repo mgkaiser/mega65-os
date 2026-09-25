@@ -10,8 +10,6 @@ Current components:
 - `kernel/` — freestanding resident-kernel nucleus and early BRK/kernel-entry
   plumbing.
 - `docs/` — canonical architecture and design documents.
-- `project/` — repository copy of the project backlog and architecture tracking
-  data.
 
 Toolchain: **LLVM-MOS/Clang**, using `mos-mega65-clang` and the 45GS02 target.
 
