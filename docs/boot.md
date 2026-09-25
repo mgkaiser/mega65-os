@@ -6,6 +6,8 @@ Do not gradually coexist with the stock operating environment.
 
 The stock environment merely launches a tiny transition loader. That loader uses the MEGA65 hypervisor facilities to cross into our own environment as early as practical.
 
+The phase-1 implementation uses stock Hyppo's transfer-area, setname, and loadfile calls to load a raw `kernel.bin` at **$4000**, then disables compatibility-ROM write protection, establishes the native RAM/IO mapping, and transfers control directly to the kernel entry at $4000. Hyppo load failures halt the transition loader rather than jumping into an invalid image.
+
 Conceptually:
 
     RESET
@@ -26,7 +28,7 @@ Keep extremely small. Responsibilities only:
 - enter controlled machine state,
 - mask/disable normal interrupt activity as required,
 - invoke hypervisor loading facilities,
-- transfer control to our bootstrap.
+- transfer control to the resident kernel/bootstrap entry.
 
 It should not contain a filesystem, general executable loader, or normal OS functionality.
 
