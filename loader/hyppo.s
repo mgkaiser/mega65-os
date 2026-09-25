@@ -7,7 +7,7 @@
 ; $00:$2E setname: uses the configured transfer area
 ; $00:$36 loadfile: X/Y/Z = 24-bit destination, low/mid/high
 ;
-; Every Hypervisor call is followed by NOP as required by the ABI.  Carry set
+; Every Hypervisor call is followed by NOP as required by the ABI. Carry set
 ; means success; carry clear means failure.
 ;
 ; uint8_t load_kernel_image(void)
@@ -28,9 +28,9 @@ _load_kernel_image:
         nop
         bcc _load_failed
 
-        ; Load the raw resident image directly at its linked address $004000.
+        ; Load the raw resident image directly at its linked address $00E000.
         ldx #$00
-        ldy #$40
+        ldy #$e0
         ldz #$00
         lda #$36
         sta $d640
