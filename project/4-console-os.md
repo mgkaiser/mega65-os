@@ -1,0 +1,16 @@
+# 4 - Console OS
+
+10 work items imported from `MEGA65_OS_User_Stories.xlsx`.
+
+| ID | Epic | Priority | Status | Estimate | Dependencies | Chapters | Work item | Acceptance criteria |
+|---|---|---|---|---|---|---|---|---|
+| US-056 | C Runtime | Must | Backlog | XL | US-040, US-026 | 17 | As a project contributor, I want to build a useful libc over OS handles so that the MEGA65 OS architecture can be implemented incrementally. | core C APIs cover files, streams, processes, signals, threads and synchronization |
+| US-057 | Console | Must | Backlog | L | US-035, US-040 | 18 | As a project contributor, I want to implement a physical text TTY so that the MEGA65 OS architecture can be implemented incrementally. | keyboard/text display use blocking TTY semantics and defined control behavior |
+| US-058 | Console | Should | Backlog | L | US-057 | 18 | As a project contributor, I want to implement multiple virtual consoles so that the MEGA65 OS architecture can be implemented incrementally. | at least three independent TTYs switch keyboard/display state correctly |
+| US-059 | Console | Must | Backlog | L | US-057, US-029 | 18 | As a project contributor, I want to implement PTY master/slave pairs so that the MEGA65 OS architecture can be implemented incrementally. | shell behaves normally on slave and master drives I/O/hangup |
+| US-060 | Shell | Must | Backlog | XL | US-059, US-029, US-046 | 19 | As a project contributor, I want to build shell process launching, pipelines and redirection so that the MEGA65 OS architecture can be implemented incrementally. | shell launches .mex programs and supports standard streams and multi-stage pipes |
+| US-061 | Diagnostics | Must | Backlog | L | US-060 | 19,25 | As a project contributor, I want to build process/memory/module/device inspection tools so that the MEGA65 OS architecture can be implemented incrementally. | live architecture state is visible without raw kernel-memory inspection |
+| US-062 | Diagnostics | Should | Backlog | L | US-061 | 24,25 | As a project contributor, I want to trace faults, remaps, far calls, DMA, scheduler and IRQs so that the MEGA65 OS architecture can be implemented incrementally. | bounded counters/traces can be enabled, read and reset |
+| US-063 | Debugger | Should | Backlog | XL | US-061, US-042 | 25 | As a project contributor, I want to build an object/extent-aware debugger so that the MEGA65 OS architecture can be implemented incrementally. | debugger inspects registers, stack/ZP, far pointers, mappings, residency and symbols |
+| US-105 | TTY Decision | Must | Backlog | M | US-093, US-095 | 18 | As an OS architect, I want to define tty line discipline and control-character semantics so that implementation is not built on an unresolved architectural assumption. | Canonical/raw modes, echo, EOF, erase, interrupt/suspend behavior and signal integration are specified. |
+| US-106 | TTY Decision | Must | Backlog | L | US-105 | 18,19 | As an OS architect, I want to define pty and job-control apis so that implementation is not built on an unresolved architectural assumption. | Master/slave lifecycle, controlling TTY, process groups, foreground/background access and hangup semantics are specified. |
