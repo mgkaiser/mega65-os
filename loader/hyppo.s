@@ -1,45 +1,44 @@
-; Stock-Hyppo calls used by the phase-1 transition loader.
-; mega65-book.pdf is authoritative for the public ABI.
-;
-; The caller has already copied "kernel.bin\0" to $0200.
-;
-; $00:$3A setup_transfer_area: Y = page number ($02)
-; $00:$2E setname: uses the configured transfer area
-; $00:$36 loadfile: X/Y/Z = 24-bit destination, low/mid/high
-;
-; Every Hypervisor call is followed by NOP as required by the ABI. Carry set
-; means success; carry clear means failure.
-;
-; uint8_t load_kernel_image(void)
-; Returns 1 in A on success, 0 in A on failure.
-
+; Stock-Hyppo phase-1 file loading.
         .text
         .globl _load_kernel_image
+        .globl _load_console_image
 
-_load_kernel_image:
+; Filename must already be NUL-terminated at transfer area $0200.
+_prepare_name:
         ldy #$02
         lda #$3a
         sta $d640
         nop
         bcc _load_failed
-
         lda #$2e
         sta $d640
         nop
         bcc _load_failed
+        rts
 
-        ; Load the raw resident image directly at its linked address $00E000.
+_load_kernel_image:
+        jsr _prepare_name
+        bcc _load_failed
+        ; $00E000
         ldx #$00
         ldy #$e0
         ldz #$00
+        bra _load
+
+_load_console_image:
+        jsr _prepare_name
+        bcc _load_failed
+        ; physical $020000, 8 KiB-aligned boot-module extent
+        ldx #$00
+        ldy #$00
+        ldz #$02
+_load:
         lda #$36
         sta $d640
         nop
         bcc _load_failed
-
         lda #$01
         rts
-
 _load_failed:
         lda #$00
         rts
