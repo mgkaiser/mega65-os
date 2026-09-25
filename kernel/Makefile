@@ -2,7 +2,7 @@ CC ?= mos-mega65-clang
 CFLAGS ?= -Os -ffreestanding -fno-builtin -Wall -Wextra -mcpu=mos45gs02
 LDFLAGS ?= -nostdlib -Wl,-T,link.ld
 TARGET := kernel.bin
-SOURCES := startup.s kernel.c brk.c
+SOURCES := startup.s kernel.c brk.c mapper.c mapper.s
 RESIDENT_LIMIT := 8192
 
 .PHONY: all clean
