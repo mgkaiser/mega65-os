@@ -81,3 +81,9 @@ FAT is a separate filesystem module and is also a 1.x requirement, particularly 
 ## 2.x Hardware Virtualization
 
 Legacy hardware virtualization is deferred to 2.x. A custom MEGA65 OS Hypervisor may trap virtualized F011 accesses and redirect legacy software to real or image-backed media. This is distinct from 1.x native floppy and CBM filesystem support.
+
+## Bootstrap console module
+
+The first external driver is the console module. It is preloaded by the transition loader, registered from the boot manifest, mapped into Page 6 by the resident nucleus, validated through a versioned module header, and invoked through module entry offsets. The same module-call path is intended for later demand-loaded drivers.
+
+Bring-up uses conventional VIC-III/IV 80-column text: H640 is enabled, screen RAM is at `$0800`, the row stride is 80 bytes, and CRAM2K exposes 2 KiB of colour RAM. The initial console can initialise the mode, clear 80x25 text/colour cells, and write simple text. Scrolling, terminal semantics and richer character conversion are later work.
