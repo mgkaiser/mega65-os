@@ -132,3 +132,11 @@ Go beyond strict LRU. Candidate scoring can consider:
 - pinning/realtime requirements
 
 Static dependency information plus runtime observations should help retain related hot extents.
+
+## Bootstrap reservations and mapping API
+
+The transition loader describes every preloaded physical extent in a versioned boot manifest. Early kernel startup copies those extents into the VM reservation table before Page 0 is reassigned. This is the seed of the normal physical allocator/pager state: preloaded code is not special memory once registered.
+
+Kernel clients do not manipulate MAP encodings. They acquire a semantic mapping window with a physical address and receive an opaque restore token. The current implementation supports the Page-6 extension window and nested LIFO mappings; later backing objects, replacement and >1 MiB MAP sequencing can be added behind the same interface.
+
+The mapper owns a software shadow because normal code cannot rely on reading MAP state directly. Page 7 remains resident while Page 6 is remapped.
