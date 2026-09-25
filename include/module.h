@@ -2,7 +2,7 @@
 #define MEGA65_OS_MODULE_H
 #include <stdint.h>
 
-#define KMOD_MAGIC 0x4d36u
+#define KMOD_MAGIC 0x364du /* bytes: M 6 */
 #define KMOD_ABI_VERSION 1
 #define KMOD_WINDOW_BASE 0xc000u
 
