@@ -11,7 +11,7 @@
  * changing driver/extension call sites.
  */
 enum kmap_window {
-    KMAP_WINDOW_EXTENSION = 0, /* logical Page 6: $C000-$DFFF */
+    KMAP_WINDOW_EXTENSION = 0, /* logical Pages 4-5: $8000-$BFFF; phase 1 maps Page 4 */
 };
 
 typedef uint8_t kmap_token_t;
@@ -32,13 +32,13 @@ enum kmap_result {
  */
 void kmap_init(void);
 
-/* Map an 8 KiB physical extent into a semantic kernel window.
+/* Map a physical extent into a semantic kernel execution window.
  *
  * phys_addr is a 28-bit MEGA65 physical address and must be 8 KiB aligned.
  * On success, *token identifies the previous mapping and must later be passed
  * to kmap_release().  Tokens are intentionally opaque to callers.
  *
- * The phase-1 implementation supports KMAP_WINDOW_EXTENSION.  The interface
+ * The phase-1 implementation maps one 8 KiB module slab at $8000-$9FFF. Pages 5-7 remain real/untranslated, preserving kernel workspace, near I/O, and the resident nucleus. The full extension window may grow to 16 KiB ($8000-$BFFF) when contiguous module extents are used.  The interface
  * is already shaped for additional windows/backing objects later.
  */
 enum kmap_result kmap_acquire(enum kmap_window window,
