@@ -41,7 +41,7 @@ enum kmap_result kmap_acquire(enum kmap_window window, uint32_t phys_addr,
     uint32_t offset;
     if (!token) return KMAP_EINVAL;
     *token = KMAP_TOKEN_INVALID;
-    if (window != KMAP_WINDOW_EXTENSION) return KMAP_ENOTSUP;
+    if (window != KMAP_WINDOW_UPPER0) return KMAP_ENOTSUP;
     if (phys_addr & 0x1fffu) return KMAP_EALIGN;
     if (phys_addr >= 0x100000u) return KMAP_ENOTSUP;
     if (map_depth >= KMAP_STACK_DEPTH) return KMAP_EDEPTH;
@@ -51,7 +51,9 @@ enum kmap_result kmap_acquire(enum kmap_window window, uint32_t phys_addr,
 
     offset = (phys_addr - 0x00008000u) & 0x000fffffu;
     current_map.hi.offset_pages = (uint16_t)(offset >> 8);
-    current_map.hi.enable = 0x01; /* Page 4 ($8000-$9FFF) only */
+    /* Bootstrap overlays one 8 KiB upper slot. Future multi-slot overlays
+     * must retain one common MAPHI displacement for every enabled slot. */
+    current_map.hi.enable = 0x01; /* Page 4 ($8000-$9FFF) */
     current_map.hi.megabyte = 0;
     apply_state(&current_map);
     return KMAP_OK;
