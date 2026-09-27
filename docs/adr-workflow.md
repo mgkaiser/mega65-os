@@ -90,6 +90,6 @@ OS-policy decisions may be closed when the decision is explicit in the canonical
 
 ## Decisions already made outside unresolved research
 
-The canonical design documents already record several accepted project decisions, including the 1.x/2.x Hypervisor boundary, physical floppy/FAT/CBM filesystem scope, the common CBM filesystem layer, the 8 KiB resident nucleus at `$E000-$FFFF`, Page 0 as the active-thread page, Page 6 as the pageable kernel-extension execution window, and the near/flat/MAP/DMA access hierarchy.
+The canonical design documents already record several accepted project decisions, including the 1.x/2.x Hypervisor boundary, physical floppy/FAT/CBM filesystem scope, the common CBM filesystem layer, the 8 KiB resident nucleus at `$E000-$FFFF`, the 32 KiB MAPLO process half, real kernel low memory, and the $8000 upper-half kernel-extension execution slab, and the near/flat/MAP/DMA access hierarchy.
 
 When one of these decisions needs a historical ADR, create it without reopening the decision unless new evidence requires reconsideration.
