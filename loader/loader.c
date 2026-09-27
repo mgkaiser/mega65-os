@@ -65,7 +65,7 @@ int main(void)
     if(!load_console_image()) halt();
 
     /* The transfer area is no longer needed; turn it into the versioned
-     * loader->kernel manifest before Page 0 changes ownership.
+     * loader->kernel manifest before the lower 32 KiB is ever mapped to a process extent.
      */
     build_boot_info();
     disable_rom_write_protect();
