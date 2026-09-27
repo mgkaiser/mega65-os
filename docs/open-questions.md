@@ -15,8 +15,7 @@ decision.
     transition loader still need verification.
 -   **Resolved by documentation --- MAP granularity and basic
     constraints.** CPU view is eight 8 KiB blocks; lower/upper 32 KiB
-    have separate offsets; offsets have 256-byte granularity; MAP state
-    cannot be read back; mapping beyond 1 MiB requires the MEGA65
+    have separate offsets; offsets have 256-byte granularity; selector bits are replacement state (0 means untranslated, not 'leave unchanged'); all enabled 8 KiB slabs in one 32 KiB half share that half's offset; MAP state cannot be read back; mapping beyond 1 MiB requires the MEGA65
     extension and careful sequencing; `EOM` ends the
     interrupt-suppressed mapping sequence.
 -   **Open --- exact first-384 KiB performance assumptions.** The guide
@@ -42,10 +41,7 @@ decision.
 
 ## Memory
 
--   **Partially resolved --- 8 KiB quantum.** 8 KiB is definitely MAP
-    block granularity, but the guide does not require the OS
-    object/pager allocation quantum to be 8 KiB. Keep this as an OS
-    design decision.
+-   **Clarified --- mapping versus allocation quantum.** 8 KiB is MAP selector granularity, while a process's normal mapped execution extent is 32 KiB contiguous because MAPLO has one shared offset. Allocation/object backing may still use smaller units; exact allocator granularity remains an OS policy decision.
 -   Open: exact near-heap logical layout.
 -   Open: reserve versus commit API semantics.
 -   Open: swap format/location.
@@ -69,6 +65,8 @@ decision.
 -   **Resolved constraint:** ABI/compiler must target 45GS02 register,
     Base Page, stack, compound-instruction and addressing semantics; no
     65816 ABI assumptions.
+
+-   **Open --- kernel-entry MAPLO transition.** IRQ/BRK hardware pushes the user frame while the process lower-half mapping is active. The entry veneer must preserve that frame before exposing the real kernel Base Page/stack; exact sequence requires implementation and hardware/emulator validation.
 
 ## Processes/security
 
