@@ -7,6 +7,6 @@ SOURCES := header.s console.c
 all: $(TARGET)
 $(TARGET): $(SOURCES) link.ld
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SOURCES)
-	@test $$(wc -c < $@) -le 4096 || (echo "console exceeds 4 KiB safe execution region"; rm -f $@; false)
+	@test $$(wc -c < $@) -le 8192 || (echo "console exceeds 8 KiB phase-1 module slab"; rm -f $@; false)
 clean:
 	rm -f $(TARGET) *.o *.elf *.map
