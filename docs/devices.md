@@ -31,26 +31,19 @@ Device handles should support applicable operations such as:
 
 ## Driver execution and state
 
-Normal drivers and kernel extensions are not required to fit in the resident 8 KiB nucleus. Their executable extents are pageable and execute through the kernel's Page-6 window at $C000-$DFFF.
+Normal drivers and kernel extensions execute through the upper-half kernel module window. Phase 1 maps one 8 KiB slab at $8000-$9FFF. Page 5 ($A000-$BFFF) is reserved so the execution window can later grow to 16 KiB for contiguous module extents sharing the MAPHI displacement.
 
-Page 6 is an execution window, not a requirement that all driver memory live in the logical 64 KiB map. Persistent driver state, buffers, descriptors, and other objects may remain elsewhere in physical memory and be reached with 45GS02 flat/far loads and stores.
+Pages 6 and 7 remain untranslated. This deliberately preserves real kernel RAM at $C000-$CFFF, conventional near I/O at $D000-$DFFF, and the resident nucleus at $E000-$FFFF.
 
-This separation keeps the resident Page-7 nucleus small and makes clean driver code cheap to evict/remap.
+Persistent driver state need not live in the execution slab. It may reside in kernel-managed objects elsewhere in physical memory.
 
 ## Hardware register access
 
 Normal applications do not know hardware register addresses.
 
-Drivers have two native register-access strategies:
+During Phase 1, drivers can use the conventional near $D000 I/O aperture because the module window no longer overlaps it. This avoids depending on compiler support for the planned far-pointer/flat-I/O ABI.
 
-- **Sparse I/O:** use 45GS02 flat/far loads and stores to physical I/O registers. Individual accesses are slower than near $D000 accesses, but no Page-6/I/O remapping round trip is required.
-- **Dense I/O:** when many consecutive accesses justify the setup cost, temporarily expose the conventional $D000 I/O aperture and use near loads/stores, then restore the previous mapping.
-
-The crossover should be measured. Drivers should not page/expose I/O for a single register access merely because near I/O is individually faster.
-
-This also means a hardware driver can normally keep its entire $C000-$DFFF executable extent mapped while touching hardware sparsely through flat addressing.
-
-Raw register/device mappings for applications require capabilities. High-performance games/demos can request exclusive hardware access while the scheduler and OS remain alive.
+The hardware's flat-memory mechanism remains useful for sparse far I/O and data, and assembly veneers can expose it before compiler lowering exists. Later drivers may choose near or flat I/O based on locality and measured cost.
 
 Direct `$Dxxx` constants outside the architecture/device layer should be considered an architectural violation in native application code.
 
@@ -84,6 +77,6 @@ Legacy hardware virtualization is deferred to 2.x. A custom MEGA65 OS Hypervisor
 
 ## Bootstrap console module
 
-The first external driver is the console module. It is preloaded by the transition loader, registered from the boot manifest, mapped into Page 6 by the resident nucleus, validated through a versioned module header, and invoked through module entry offsets. The same module-call path is intended for later demand-loaded drivers.
+The first external driver is the console module. It is preloaded by the transition loader, registered from the boot manifest, mapped at $8000-$9FFF by the resident nucleus, validated through a versioned module header, and invoked through module entry offsets. The same module-call path is intended for later demand-loaded drivers.
 
 Bring-up uses conventional VIC-III/IV 80-column text: H640 is enabled, screen RAM is at `$0800`, the row stride is 80 bytes, and CRAM2K exposes 2 KiB of colour RAM. The initial console can initialise the mode, clear 80x25 text/colour cells, and write simple text. Scrolling, terminal semantics and richer character conversion are later work.
