@@ -6,6 +6,6 @@
         .byte 1
         .byte 1
         .word __module_image_size
-        .word _console_init-$c000
-        .word _console_clear-$c000
-        .word _console_write-$c000
+        .word _console_init-$8000
+        .word _console_clear-$8000
+        .word _console_write-$8000
