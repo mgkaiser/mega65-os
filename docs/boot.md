@@ -6,9 +6,9 @@ The stock environment launches a tiny transition loader. It uses stock Hyppo onl
 
 Phase 1 currently preloads:
 - `kernel.bin` at physical/logical `$00E000`;
-- `console.bin` into an 8 KiB physical extent at `$020000`.
+- `console.bin` into one 8 KiB physical page at `$020000`.
 
-The loader writes a versioned boot manifest at real logical `$0200`. The kernel consumes it before any process MAPLO mapping is installed and seeds physical-memory reservations from it.
+The loader writes a versioned boot manifest at real logical `$0200`. The kernel consumes it before any process MAPLO mapping is installed and seeds 8 KiB physical-page reservations from it.
 
 ## Handoff
 
@@ -22,30 +22,27 @@ The loader writes a versioned boot manifest at real logical `$0200`. The kernel 
       -> resident nucleus
           -> consume manifest
           -> initialize complete MAP software shadow
-          -> map console at logical $8000-$9FFF
+          -> overlay console at logical $8000-$9FFF
           -> call console init/write
-          -> later start normal loader/pager/process machinery
+          -> later start allocator/pager/process machinery
 
-## Native split
+## Native split during boot
 
-    $0000-$7FFF   process MAPLO half (real during bootstrap/kernel)
-    $8000-$9FFF   module execution slab
-    $A000-$BFFF   future second module slab
-    $C000-$CFFF   real kernel RAM
-    $D000-$DFFF   real near I/O
-    $E000-$FFFF   resident kernel
+    $0000-$7FFF   real kernel/bootstrap low memory
+    $8000-$9FFF   console overlay while selected
+    $A000-$BFFF   real upper memory
+    $C000-$DFFF   real kernel/I/O
+    $E000-$FFFF   resident nucleus
 
-During bootstrap MAPLO is disabled, so the manifest at $0200 and kernel low-memory state are real. Later process execution maps a contiguous 32 KiB process extent over $0000-$7FFF. Kernel entry restores the real lower half only after preserving the process's hardware-pushed frame.
+Later, each process receives four contiguous 8 KiB pages mapped over $0000-$7FFF. Pages $8000-$DFFF become the shared upper working set for process data and pageable kernel components, with hot real kernel content visible whenever a slot is untranslated.
 
 ## Boot-critical modules
 
-Preloading is a residency decision, not a different module type. The console uses the same versioned module header and mapping/call path intended for later demand-loaded drivers.
-
-The console is now linked for $8000. Phase 1 maps one 8 KiB slab there while leaving $A000-$FFFF untranslated, which preserves near I/O at $D000 and the resident nucleus at $E000.
+Preloading is a residency decision, not a different module type. The bootstrap console is an ordinary 8 KiB allocation loaded at physical $020000 and overlaid at $8000-$9FFF. The same mechanism evolves into upper-working-set paging.
 
 ## Transition loader
 
-Keep it small: load boot-critical images, publish their physical extents, establish the bootstrap machine state, and transfer control. General executable loading and paging belong to the kernel.
+Keep it small: load boot-critical images, publish their physical extents, establish bootstrap state, and transfer control. General allocation, executable loading and paging belong to the kernel.
 
 ## Version boundary
 
