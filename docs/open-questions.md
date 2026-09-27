@@ -41,11 +41,11 @@ decision.
 
 ## Memory
 
--   **Clarified --- mapping versus allocation quantum.** 8 KiB is MAP selector granularity, while a process's normal mapped execution extent is 32 KiB contiguous because MAPLO has one shared offset. Allocation/object backing may still use smaller units; exact allocator granularity remains an OS policy decision.
+-   **Decided --- allocation and process extent quantum.** Physical allocation/residency/eviction uses 8 KiB pages. A new process allocates four contiguous pages for its 32 KiB MAPLO primary arena. The upper 24 KiB is a shared kernel/process working set; simultaneously overlaid MAPHI slots must satisfy the common-displacement contiguous-placement constraint.
 -   Open: exact near-heap logical layout.
 -   Open: reserve versus commit API semantics.
 -   Open: swap format/location.
--   Open: page replacement scoring.
+-   Open: page replacement scoring, including priority for hot real kernel pages beneath upper-slot overlays.
 -   Open: pinning rules and deadlock prevention.
 -   **Newly clarified:** far-data policy must choose among flat-memory
     access, MAP+near access, and DMA rather than assuming MAP for sparse
