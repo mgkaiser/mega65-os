@@ -36,7 +36,7 @@ The boot medium must make `kernel.bin` and `console.bin` available by those name
 
 Individual targets are `make kernel`, `make console`, and `make loader`.
 
-The kernel is limited to 8192 resident bytes. The bootstrap console is additionally limited to 4096 executable bytes because bring-up currently exposes the conventional `$D000-$DFFF` I/O aperture while the driver executes in Page 6.
+The kernel is limited to 8192 resident bytes. The bootstrap console is limited to the 8192-byte phase-1 module slab at `$8000-$9FFF`. `$D000-$DFFF` remains untranslated and available as the conventional near I/O aperture.
 
 ## Current bring-up status
 
