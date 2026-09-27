@@ -20,14 +20,15 @@ This is deliberately provisional.
 - enforce the resident nucleus as the single $E000-$FFFF 8 KiB extent
 
 ## Milestone 2 — nucleus
-- memory/object manager
+- memory/object manager with 8 KiB physical allocation/residency pages
 - MAPLO 32K process-half machinery
-- establish contiguous 32K process mapping extents at $0000-$7FFF
+- allocate four contiguous 8 KiB pages for each new process primary arena
 - establish real kernel Base Page/stack transition on kernel entry
-- establish $8000-$9FFF pageable kernel-extension execution slab and preserve near I/O
+- establish $8000-$DFFF shared upper working set for hot kernel pages, pageable drivers and process data
+- enforce MAPHI common-displacement/contiguous replacement-family rules
 - timer IRQ
 - scheduler
-- threads with Page-0 Base Page/stack state
+- threads with Base Page/stack state inside the process lower-half arena
 - two preemptively scheduled C processes
 
 ## Milestone 3 — core OS
@@ -37,7 +38,7 @@ This is deliberately provisional.
 - shared memory
 - wait sets
 - `/dev`
-- pageable driver/kernel-extension loading through Page 6
+- pageable driver/kernel-extension loading through upper 8 KiB working-set slots
 - flat/far driver-state and sparse physical-I/O access primitives
 - basic storage/VFS
 - executable binder
