@@ -31,17 +31,19 @@ Device handles should support applicable operations such as:
 
 ## Driver execution and state
 
-Normal drivers and kernel extensions execute through the upper-half kernel module window. Phase 1 maps one 8 KiB slab at $8000-$9FFF. Page 5 ($A000-$BFFF) is reserved so the execution window can later grow to 16 KiB for contiguous module extents sharing the MAPHI displacement.
+Normal drivers and kernel extensions share the upper 24 KiB working set ($8000-$DFFF) with active-process data. Frequently used kernel components should preferentially occupy real memory beginning at $8000 so they are immediately visible whenever their MAPHI slot is untranslated. Less-common drivers and process data may overlay those 8 KiB slots.
 
-Pages 6 and 7 remain untranslated. This deliberately preserves real kernel RAM at $C000-$CFFF, conventional near I/O at $D000-$DFFF, and the resident nucleus at $E000-$FFFF.
+All simultaneously MAPHI-enabled upper slots share one displacement, so an overlay set must occupy the corresponding positions of a contiguous physical run. This is a placement constraint; the pages in that run may serve different purposes.
 
-Persistent driver state need not live in the execution slab. It may reside in kernel-managed objects elsewhere in physical memory.
+Page 6 spans $C000-$DFFF. Overlaying it hides the conventional $D000 I/O aperture for the duration of that mapping. Drivers that require near I/O should execute with Page 6 untranslated or arrange an explicit transition; flat/far I/O remains the longer-term sparse-I/O path.
+
+Persistent driver state need not live beside driver code and can reside in ordinary kernel-managed 8 KiB pages.
 
 ## Hardware register access
 
 Normal applications do not know hardware register addresses.
 
-During Phase 1, drivers can use the conventional near $D000 I/O aperture because the module window no longer overlaps it. This avoids depending on compiler support for the planned far-pointer/flat-I/O ABI.
+During Phase 1, the bootstrap console occupies only Page 4 ($8000-$9FFF), so Page 6 remains untranslated and the conventional near $D000 I/O aperture stays visible. This avoids depending on compiler support for the planned far-pointer/flat-I/O ABI.
 
 The hardware's flat-memory mechanism remains useful for sparse far I/O and data, and assembly veneers can expose it before compiler lowering exists. Later drivers may choose near or flat I/O based on locality and measured cost.
 
