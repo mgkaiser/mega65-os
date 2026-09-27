@@ -21,10 +21,10 @@ This is deliberately provisional.
 
 ## Milestone 2 — nucleus
 - memory/object manager
-- 8K page machinery
-- establish Page 0 as the active-thread page
-- establish Pages 1-5 as demand-paged process working-set windows
-- establish Page 6 as the pageable kernel-extension execution window
+- MAPLO 32K process-half machinery
+- establish contiguous 32K process mapping extents at $0000-$7FFF
+- establish real kernel Base Page/stack transition on kernel entry
+- establish $8000-$9FFF pageable kernel-extension execution slab and preserve near I/O
 - timer IRQ
 - scheduler
 - threads with Page-0 Base Page/stack state
