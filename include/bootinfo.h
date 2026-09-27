@@ -29,7 +29,7 @@ struct boot_info {
 };
 
 /* Loader owns this storage until handoff. Kernel copies/consumes it before
- * Page 0 is repurposed for a thread.
+ * the lower 32 KiB is mapped to a process extent.
  */
 #define BOOTINFO ((volatile struct boot_info *)(uintptr_t)BOOTINFO_ADDRESS)
 #endif
