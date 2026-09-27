@@ -49,9 +49,9 @@ enum kmap_result kmap_acquire(enum kmap_window window, uint32_t phys_addr,
     saved_map[map_depth] = current_map;
     *token = map_depth++;
 
-    offset = (phys_addr - 0x0000c000u) & 0x000fffffu;
+    offset = (phys_addr - 0x00008000u) & 0x000fffffu;
     current_map.hi.offset_pages = (uint16_t)(offset >> 8);
-    current_map.hi.enable = 0x04; /* Page 6 only */
+    current_map.hi.enable = 0x01; /* Page 4 ($8000-$9FFF) only */
     current_map.hi.megabyte = 0;
     apply_state(&current_map);
     return KMAP_OK;
