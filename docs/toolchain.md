@@ -4,7 +4,7 @@
 
 Do not begin by writing a compiler from scratch.
 
-First implement the architecture using standard C plus explicit runtime types/functions. Adapt an existing compiler/backend if practical. LLVM-MOS, vbcc, and cc65 have been discussed as possible starting points; actual 45GS02/MEGA65 suitability must be investigated.
+First implement the architecture using standard C plus explicit runtime types/functions. Adapt an existing compiler/backend if practical. Phase 1 is locked to LLVM-MOS/Clang targeting 45GS02 (`-mcpu=mos45gs02`). Compiler extensions are deferred until the bootstrap ABI is working.
 
 Add language/compiler extensions only where they produce measurable value.
 
@@ -15,7 +15,7 @@ Add language/compiler extensions only where they produce measurable value.
 - far function pointers
 - kernel physical pointers
 - relocatable/bankable extents
-- per-thread zero page
+- process-half Base Page/zero-page conventions
 - TLS
 - OS syscall ABI
 - far-call trampolines
