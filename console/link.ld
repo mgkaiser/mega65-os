@@ -12,5 +12,5 @@ __rc0 = 0x0002;
 INCLUDE imag-regs.ld
 __module_image_size = . - 0x8000;
 ASSERT(ADDR(.module_header) == 0x8000, "module header must be at $8000");
-ASSERT(__module_image_size <= 0x2000, "console must fit the 8 KiB phase-1 module slab");
+ASSERT(__module_image_size <= 0x2000, "console must fit the 8 KiB upper working-set page");
 OUTPUT_FORMAT { TRIM(ram) }
