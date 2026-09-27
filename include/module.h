@@ -4,7 +4,7 @@
 
 #define KMOD_MAGIC 0x364du /* bytes: M 6 */
 #define KMOD_ABI_VERSION 1
-#define KMOD_WINDOW_BASE 0xc000u
+#define KMOD_WINDOW_BASE 0x8000u
 
 enum kmod_kind { KMOD_KIND_CONSOLE = 1 };
 
