@@ -32,8 +32,8 @@ Teach it:
 - 64-bit far object pointers;
 - far function pointers;
 - kernel-only physical pointers;
-- per-thread relocatable zero page;
-- per-thread stack/TLS;
+- process-half Base Page/zero-page conventions and kernel/user transition;
+- per-thread stack/TLS placement inside the 32 KiB process extent;
 - code/data extents;
 - canonical logical execution windows;
 - OS syscall/calling conventions;
@@ -48,7 +48,7 @@ A far pointer is not merely a wide integer pointer. It denotes an OS-managed obj
 
 For dense loops, the compiler can hoist resolution out of the inner loop: map/pin a useful range, use ordinary 16-bit addressing, advance/remap at an 8K boundary, then unpin.
 
-Optimization can consider access density, sequential versus sparse access, 8K boundaries, mapping cost, DMA promotion cost, object lifetime, and read/write behavior.
+Optimization can consider access density, sequential versus sparse access, process-half/object boundaries, mapping cost, DMA promotion cost, object lifetime, and read/write behavior.
 
 #### DMA-aware optimization
 
@@ -70,12 +70,12 @@ A custom compiler is worthwhile if it materially improves:
 - far-pointer semantics/optimization;
 - automatic near/far handling;
 - object bounds/protection checks;
-- 8K-page-aware loops;
+- MAP-half/object-aware loops;
 - mapping-lifetime analysis;
 - DMA generation;
 - extent construction;
 - call-graph-driven placement;
-- per-thread zero-page allocation;
+- Base Page/TLS allocation;
 - MEGA65-specific instruction selection;
 - whole-program metadata exported to `.mex`;
 - compiler/linker/binder/pager/profile cooperation.
