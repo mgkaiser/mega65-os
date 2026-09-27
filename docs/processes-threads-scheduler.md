@@ -19,17 +19,13 @@ Creating a process automatically creates an initial/main thread.
 
 Scheduler schedules threads, not processes.
 
-Each thread has:
-- CPU registers
-- independently relocatable stack
-- independently relocatable zero page
-- scheduler state
-- TLS
-- thread-private resources
+Each thread has CPU register/scheduler state and thread-private resources. The exact placement of per-thread user stack, Base Page and TLS inside a process's 32 KiB MAPLO extent remains an ABI design question; do not model them as independently MAP-able 8 KiB pages.
 
-Threads in one process share the process address space and process-level resources.
+A running process normally owns a contiguous 32 KiB physical execution extent mapped at $0000-$7FFF by MAPLO. User Base Page/zero page and user stack are therefore part of that mapped lower half.
 
-Same-process context switches should often avoid changing most process mappings.
+Kernel execution uses the real/untranslated lower half, including a real kernel Base Page and kernel stack. Interrupt/BRK entry must preserve the user frame pushed under the process mapping before MAPLO is disabled. The exact transition sequence remains to be implemented and validated.
+
+Threads in one process share process-level resources and address-space objects.
 
 ## Preemption
 
