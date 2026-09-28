@@ -1,4 +1,6 @@
-CC ?= mos-mega65-clang
+ifeq ($(origin CC),default)
+CC := mos-mega65-clang
+endif
 CFLAGS ?= -Os -ffreestanding -fno-builtin -Wall -Wextra -mcpu=mos45gs02 -I../include
 LDFLAGS ?= -nostdlib -Wl,-T,link.ld
 TARGET := kernel.bin
