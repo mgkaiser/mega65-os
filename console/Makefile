@@ -7,9 +7,11 @@ LDFLAGS ?= -nostdlib
 # All generated component products live together outside the source tree.
 BUILD_DIR ?= ../build
 DEBUG_DIR := $(BUILD_DIR)/debug
+LIST_DIR := $(BUILD_DIR)/lst
+OBJDUMP ?= llvm-objdump
 TARGET := $(BUILD_DIR)/console.bin
 MAP := $(BUILD_DIR)/console.map
-LISTING := $(BUILD_DIR)/console.lst
+LISTING := $(LIST_DIR)/console.lst
 
 SOURCES := header.s console.c
 C_SOURCES := console.c
@@ -24,6 +26,9 @@ $(BUILD_DIR):
 $(DEBUG_DIR): | $(BUILD_DIR)
 	mkdir -p $@
 
+$(LIST_DIR): | $(BUILD_DIR)
+	mkdir -p $@
+
 $(TARGET): $(SOURCES) link.ld | $(BUILD_DIR) $(DEBUG_DIR)
 	$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$(MAP) -o $@ $(SOURCES)
 	@# LLVM-MOS emits a companion ELF beside flat/PRG outputs when the linker
@@ -33,13 +38,13 @@ $(TARGET): $(SOURCES) link.ld | $(BUILD_DIR) $(DEBUG_DIR)
 	mv $(BUILD_DIR)/console.bin.elf $(DEBUG_DIR)/console.elf
 	@test $$(wc -c < $@) -le 8192 || (echo "console exceeds 8 KiB upper working-set page"; rm -f $@; false)
 
-listings: $(C_SOURCES) | $(BUILD_DIR)
-	@rm -f $(LISTING)
-	@for src in $(C_SOURCES); do \
-		echo "===== $$src =====" >> $(LISTING); \
-		$(CC) $(CFLAGS) -S -fverbose-asm -o - $$src >> $(LISTING); \
-		echo >> $(LISTING); \
-	done
+# Produce a source-interleaved disassembly of the exact linked ELF.  -S asks
+# llvm-objdump to show source lines beside the final machine instructions;
+# --line-numbers preserves file/line locations.  This is intentionally based
+# on the linked ELF, not a second compiler-only assembly pass, so addresses and
+# code match the runnable image.
+listings: $(TARGET) | $(LIST_DIR)
+	$(OBJDUMP) -d -S --line-numbers $(DEBUG_DIR)/console.elf > $(LISTING)
 
 clean:
 	rm -f $(TARGET) $(MAP) $(LISTING) $(DEBUG_DIR)/console.elf $(BUILD_DIR)/console.bin.elf
