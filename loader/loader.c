@@ -1,73 +1,132 @@
-/* MEGA65 OS phase-1 transition loader. */
+/*
+ * MEGA65 OS phase-1 transition loader.
+ *
+ * Design references:
+ *   - docs/boot.md § Transition loader
+ *   - docs/boot.md § Handoff
+ *   - docs/boot.md § Boot-critical modules
+ *   - docs/memory.md § Bootstrap reservations
+ *
+ * Hardware reference:
+ *   - mega65-book.pdf: Hypervisor/Hyppo file services, MAP/EOM, VIC-IV unlock.
+ *
+ * This program is intentionally a conventional MEGA65-loadable PRG. Its job
+ * ends once native OS state exists: load the resident kernel and boot-critical
+ * console module into their physical extents, construct a versioned manifest,
+ * establish the native RAM view, and transfer control to $E000.
+ */
 #include <stdint.h>
 #include "bootinfo.h"
 
 #define KERNEL_ENTRY 0xe000u
 #define KERNEL_PHYS  0x0000e000UL
 #define CONSOLE_PHYS 0x00020000UL
-#define EXTENT_SIZE  0x00002000UL
+#define EXTENT_SIZE  0x00002000UL /* 8 KiB allocation/residency quantum. */
 
 extern uint8_t load_kernel_image(void);
 extern uint8_t load_console_image(void);
 
+/* Hyppo's filename service consumes the transfer area at $0200. We reuse that
+ * storage for BOOTINFO only after the final file load has completed.
+ */
 static void set_filename(const char *name)
 {
-    volatile uint8_t *p=(volatile uint8_t *)0x0200u;
-    do { *p++=(uint8_t)*name; } while (*name++);
+    volatile uint8_t *p = (volatile uint8_t *)0x0200u;
+    do {
+        *p++ = (uint8_t)*name;
+    } while (*name++);
 }
 
+/* Remove ROM write protection before exposing RAM in the native map.
+ * Register semantics come from the MEGA65 hardware documentation; this is
+ * machine-transition code, not a general driver API.
+ */
 static void disable_rom_write_protect(void)
 {
-    __asm__ volatile ("lda #$02\nsta $d641\nnop\n" : : : "a","memory");
+    __asm__ volatile ("lda #$02\nsta $d641\nnop\n" : : : "a", "memory");
 }
 
+/* Establish the simple native first-64K view expected by kmap_init().
+ *
+ * Design: docs/boot.md § Handoff.
+ *
+ * MAP operands are all zero here because the loader is intentionally removing
+ * its inherited mapping before handing control to the kernel. The $01 and
+ * VIC-IV writes select the RAM/I/O environment required by native bring-up.
+ */
 static void establish_native_ram_map(void)
 {
     __asm__ volatile (
         "lda #$00\ntax\ntay\ntaz\nmap\n"
         "lda #$35\nsta $01\n"
         "lda #$47\nsta $d02f\nlda #$53\nsta $d02f\neom\n"
-        : : : "a","x","y","z","memory");
+        : : : "a", "x", "y", "z", "memory");
 }
 
+/* Convert the loader's physical-placement knowledge into a versioned kernel
+ * handoff. The kernel copies this before lower-half process mapping begins.
+ */
 static void build_boot_info(void)
 {
-    volatile struct boot_info *b=BOOTINFO;
+    volatile struct boot_info *b = BOOTINFO;
     uint8_t i;
-    b->magic=BOOTINFO_MAGIC;
-    b->version=BOOTINFO_VERSION;
-    b->module_count=2;
-    b->size=(uint16_t)(sizeof(struct boot_info));
-    for(i=0;i<BOOTINFO_MAX_MODULES;i++) {
-        b->modules[i].kind=0; b->modules[i].flags=0; b->modules[i].reserved=0;
-        b->modules[i].phys_addr=0; b->modules[i].extent_size=0;
+
+    b->magic = BOOTINFO_MAGIC;
+    b->version = BOOTINFO_VERSION;
+    b->module_count = 2;
+    b->size = (uint16_t)sizeof(struct boot_info);
+
+    /* Zero every unused descriptor so later versions can safely distinguish
+     * absent modules from partially initialized data.
+     */
+    for (i = 0; i < BOOTINFO_MAX_MODULES; i++) {
+        b->modules[i].kind = 0;
+        b->modules[i].flags = 0;
+        b->modules[i].reserved = 0;
+        b->modules[i].phys_addr = 0;
+        b->modules[i].extent_size = 0;
     }
-    b->modules[0].kind=BOOT_MODULE_KERNEL;
-    b->modules[0].phys_addr=KERNEL_PHYS;
-    b->modules[0].extent_size=EXTENT_SIZE;
-    b->modules[1].kind=BOOT_MODULE_CONSOLE;
-    b->modules[1].phys_addr=CONSOLE_PHYS;
-    b->modules[1].extent_size=EXTENT_SIZE;
+
+    b->modules[0].kind = BOOT_MODULE_KERNEL;
+    b->modules[0].phys_addr = KERNEL_PHYS;
+    b->modules[0].extent_size = EXTENT_SIZE;
+
+    b->modules[1].kind = BOOT_MODULE_CONSOLE;
+    b->modules[1].phys_addr = CONSOLE_PHYS;
+    b->modules[1].extent_size = EXTENT_SIZE;
 }
 
-__attribute__((noreturn)) static void halt(void){for(;;)__asm__ volatile("nop");}
-__attribute__((noreturn)) static void start_kernel(void)
+__attribute__((noreturn))
+static void halt(void)
 {
-    ((void(*)(void))(uintptr_t)KERNEL_ENTRY)(); halt();
+    for (;;) __asm__ volatile("nop");
+}
+
+/* The kernel image is linked so its first byte is the entry at logical $E000.
+ * If it ever returns, stop: there is no loader environment to return to.
+ */
+__attribute__((noreturn))
+static void start_kernel(void)
+{
+    ((void (*)(void))(uintptr_t)KERNEL_ENTRY)();
+    halt();
 }
 
 int main(void)
 {
+    /* Load both boot-critical images while $0200 is still Hyppo scratch. */
     set_filename("kernel.bin");
-    if(!load_kernel_image()) halt();
+    if (!load_kernel_image()) halt();
 
     set_filename("console.bin");
-    if(!load_console_image()) halt();
+    if (!load_console_image()) halt();
 
-    /* The transfer area is no longer needed; turn it into the versioned
-     * loader->kernel manifest before the lower 32 KiB is ever mapped to a process extent.
+    /* File loading is finished, so $0200 can become the loader->kernel
+     * manifest described by docs/boot.md § Handoff.
      */
     build_boot_info();
+
+    /* Cross the one-way boundary from loader environment into native OS RAM. */
     disable_rom_write_protect();
     establish_native_ram_map();
     start_kernel();
