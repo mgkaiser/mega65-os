@@ -1,4 +1,6 @@
-CC ?= mos-mega65-clang
+ifeq ($(origin CC),default)
+CC := mos-mega65-clang
+endif
 CFLAGS ?= -Os -ffreestanding -fno-builtin -Wall -Wextra -I../include
 TARGET := loader.prg
 SOURCES := loader.c hyppo.s
