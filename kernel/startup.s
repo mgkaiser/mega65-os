@@ -7,7 +7,7 @@
 ;   .byte parameter0, parameter1, ...
 ;
 ; The CPU stacks PC = address after the signature byte.  The BRK veneer copies
-; that PC into _brk_param_address.  C therefore sees signature at params[-1]
+; that PC into brk_param_address.  C therefore sees signature at params[-1]
 ; and zero or more inline parameter bytes at params[0...].
 ;
 ; brk_dispatch() returns the number of parameter bytes consumed in A.  Before
@@ -19,29 +19,29 @@
 ; enabled.  This must be revisited when the final 45GS02 stack ABI is frozen.
 
         .section .kernel_entry,"ax"
-        .globl _kernel_start
-        .globl _irq_brk_entry
-        .globl _nmi_entry
-        .globl _kmain
-        .globl _irq_dispatch
-        .globl _brk_dispatch
-        .globl _nmi_dispatch
-        .globl _brk_param_address
+        .globl kernel_start
+        .globl irq_brk_entry
+        .globl nmi_entry
+        .globl kmain
+        .globl irq_dispatch
+        .globl brk_dispatch
+        .globl nmi_dispatch
+        .globl brk_param_address
 
-_kernel_start:
+kernel_start:
         sei
         cld
 
         ; TODO: establish the final kernel Base Page, hardware/soft stacks and MAP.
         ; TODO: zero .bss / initialise .data once linker symbols are frozen.
 
-        jsr _kmain
+        jsr kmain
 
-_kernel_returned:
+kernel_returned:
         sei
-        bra _kernel_returned
+        bra kernel_returned
 
-_irq_brk_entry:
+irq_brk_entry:
         pha
         phx
         phy
@@ -54,45 +54,45 @@ _irq_brk_entry:
         tsx
         lda $0105,x
         and #$10
-        bne _dispatch_brk
+        bne dispatch_brk
 
-        jsr _irq_dispatch
-        bra _interrupt_return
+        jsr irq_dispatch
+        bra interrupt_return
 
-_dispatch_brk:
+dispatch_brk:
         ; BRK stacks PC two bytes after the opcode.  Since byte BRK+1 is our
         ; mandatory signature, the stacked PC is exactly the first parameter.
         lda $0106,x
-        sta _brk_param_address
+        sta brk_param_address
         lda $0107,x
-        sta _brk_param_address+1
+        sta brk_param_address+1
 
         ; C reads the signature at brk_param_address[-1], can inspect as many
         ; parameter bytes as its signature requires, and returns the number of
         ; parameter bytes consumed as uint8_t in A (LLVM-MOS ABI).
-        jsr _brk_dispatch
+        jsr brk_dispatch
 
         ; Skip the consumed inline parameter bytes before RTI.  The signature
         ; has already been skipped by the BRK instruction itself.
         clc
         adc $0106,x
         sta $0106,x
-        bcc _interrupt_return
+        bcc interrupt_return
         inc $0107,x
 
-_interrupt_return:
+interrupt_return:
         plz
         ply
         plx
         pla
         rti
 
-_nmi_entry:
+nmi_entry:
         pha
         phx
         phy
         phz
-        jsr _nmi_dispatch
+        jsr nmi_dispatch
         plz
         ply
         plx
@@ -100,6 +100,6 @@ _nmi_entry:
         rti
 
         .section .vectors,"a"
-        .word _nmi_entry
-        .word _kernel_start
-        .word _irq_brk_entry
+        .word nmi_entry
+        .word kernel_start
+        .word irq_brk_entry
