@@ -19,11 +19,11 @@
 ; near I/O at $D000-$DFFF visible and leaves the resident kernel at
 ; $E000-$FFFF untouched.
         .text
-        .globl _kmap_apply_upper
-        .globl _kmap_hw_y
-        .globl _kmap_hw_z
+        .globl kmap_apply_upper
+        .globl kmap_hw_y
+        .globl kmap_hw_z
 
-_kmap_apply_upper:
+kmap_apply_upper:
         ; A/X encode the lower-half MAP state. Zero currently means no MAPLO
         ; selectors enabled -- it does NOT mean "leave lower mapping alone".
         lda #$00
@@ -31,8 +31,8 @@ _kmap_apply_upper:
 
         ; Y/Z contain the bootstrap MAPHI displacement and selector encoding
         ; prepared by mapper.c.
-        ldy _kmap_hw_y
-        ldz _kmap_hw_z
+        ldy kmap_hw_y
+        ldz kmap_hw_z
 
         ; MAP begins the mapping sequence; EOM terminates it. The MEGA65 book
         ; documents interrupt suppression across this sequence.
