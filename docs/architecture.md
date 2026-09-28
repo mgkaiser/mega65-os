@@ -44,6 +44,14 @@ Page 6 is the special case: its MAP slab is $C000-$DFFF, so overlaying it also o
 
 The resident nucleus retains the hard **8 KiB $E000-$FFFF** budget.
 
+## Resident nucleus implementation policy
+
+The permanent $E000-$FFFF nucleus is constrained by a hard 8 KiB address-space budget. C is a convenience for nucleus implementation, not an architectural requirement. Resident mechanisms may be implemented in 45GS02 assembly whenever doing so materially reduces linked size or expresses the machine operation more directly.
+
+Assembly is particularly appropriate for machine-facing mechanisms such as interrupt/BRK entry and exit, MAP state changes, Base Page/stack transitions, context switching, flat-memory primitives, compiler-ABI glue and object-call/trampoline machinery. Policy-heavy or infrequently used code should normally live outside the nucleus as pageable/loadable kernel objects rather than consume permanent bytes.
+
+Implementation choices are empirical rather than ideological: begin with clear code, inspect the final linked ELF/map/source-interleaved listing, and convert resident C routines to assembly when the measured byte saving justifies the maintenance cost. Small repeated savings matter within an 8192-byte nucleus. The flat kernel image may occupy the complete 8 KiB extent because of linker output padding; budget decisions must use linked sections/symbols rather than the raw image length alone.
+
 ## MAP constraints
 
 MAP does not provide eight independent physical page registers. Each 32 KiB half has one shared translation offset plus four 8 KiB enable bits. A zero enable bit means that slab is untranslated; it does not preserve an older translated mapping. Every MAP operation establishes complete selector/offset state.
