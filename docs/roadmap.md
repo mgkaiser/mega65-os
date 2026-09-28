@@ -18,6 +18,9 @@ This is deliberately provisional.
 - enter assembly kernel entry, then C kernel
 - place normal vectors at $FFFA-$FFFF inside the resident image
 - enforce the resident nucleus as the single $E000-$FFFF 8 KiB extent
+- measure actual resident section/function sizes from the linked ELF/map rather than the padded 8 KiB flat image
+- convert resident mechanisms to 45GS02 assembly where measured size savings justify it
+- keep policy-heavy/infrequent kernel code pageable instead of consuming permanent nucleus space
 
 ## Milestone 2 — nucleus
 - memory/object manager with 8 KiB physical allocation/residency pages
