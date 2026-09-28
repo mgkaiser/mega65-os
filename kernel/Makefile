@@ -6,8 +6,8 @@ LDFLAGS ?= -nostdlib
 TARGET := kernel.bin
 MAP := kernel.map
 LISTING := kernel.lst
-SOURCES := startup.s kernel.c brk.c mapper.c mapper.s vm_bootstrap.c kmodule.c
-C_SOURCES := kernel.c brk.c mapper.c vm_bootstrap.c kmodule.c
+SOURCES := startup.s kernel.c brk.c mapper.c mapper.s vm_bootstrap.c kmodule.c runtime.c runtime.s
+C_SOURCES := kernel.c brk.c mapper.c vm_bootstrap.c kmodule.c runtime.c
 RESIDENT_LIMIT := 8192
 .PHONY: all clean listings
 all: $(TARGET) listings
