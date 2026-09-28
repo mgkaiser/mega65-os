@@ -9,9 +9,11 @@ LDFLAGS ?= -nostdlib
 # one place.  The fallback makes "make -C kernel" useful by itself.
 BUILD_DIR ?= ../build
 DEBUG_DIR := $(BUILD_DIR)/debug
+LIST_DIR := $(BUILD_DIR)/lst
+OBJDUMP ?= llvm-objdump
 TARGET := $(BUILD_DIR)/kernel.bin
 MAP := $(BUILD_DIR)/kernel.map
-LISTING := $(BUILD_DIR)/kernel.lst
+LISTING := $(LIST_DIR)/kernel.lst
 
 SOURCES := startup.s kernel.c brk.c mapper.c mapper.s vm_bootstrap.c kmodule.c runtime.c runtime.s
 C_SOURCES := kernel.c brk.c mapper.c vm_bootstrap.c kmodule.c runtime.c
@@ -25,6 +27,9 @@ $(BUILD_DIR):
 	mkdir -p $@
 
 $(DEBUG_DIR): | $(BUILD_DIR)
+	mkdir -p $@
+
+$(LIST_DIR): | $(BUILD_DIR)
 	mkdir -p $@
 
 $(TARGET): $(SOURCES) link.ld | $(BUILD_DIR) $(DEBUG_DIR)
@@ -41,13 +46,13 @@ $(TARGET): $(SOURCES) link.ld | $(BUILD_DIR) $(DEBUG_DIR)
 	fi
 	@echo "resident kernel: $$(( $$(wc -c < $@) )) / $(RESIDENT_LIMIT) bytes"
 
-listings: $(C_SOURCES) | $(BUILD_DIR)
-	@rm -f $(LISTING)
-	@for src in $(C_SOURCES); do \
-		echo "===== $$src =====" >> $(LISTING); \
-		$(CC) $(CFLAGS) -S -fverbose-asm -o - $$src >> $(LISTING); \
-		echo >> $(LISTING); \
-	done
+# Produce a source-interleaved disassembly of the exact linked ELF.  -S asks
+# llvm-objdump to show source lines beside the final machine instructions;
+# --line-numbers preserves file/line locations.  This is intentionally based
+# on the linked ELF, not a second compiler-only assembly pass, so addresses and
+# code match the runnable image.
+listings: $(TARGET) | $(LIST_DIR)
+	$(OBJDUMP) -d -S --line-numbers $(DEBUG_DIR)/kernel.elf > $(LISTING)
 
 clean:
 	rm -f $(TARGET) $(MAP) $(LISTING) $(DEBUG_DIR)/kernel.elf $(BUILD_DIR)/kernel.bin.elf
