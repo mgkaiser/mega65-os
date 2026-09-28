@@ -1,21 +1,15 @@
 /* MEGA65 OS resident-kernel linker layout.
  *
  * The permanently resident nucleus occupies exactly one 8 KiB logical extent:
- * $E000-$FFFF.  Page 7 includes the hardware vectors at $FFFA-$FFFF.
+ * $E000-$FFFF. Page 7 includes the hardware vectors at $FFFA-$FFFF.
  *
- * Base Page is deliberately a logical ABI resource, not a globally reserved
- * physical page.  The active thread owns logical Page 0 ($0000-$1FFF), and its
- * mapping carries the compiler/runtime Base-Page state with it.
+ * LLVM-MOS' platform linker support owns the standard zero-page region and
+ * imaginary-register definitions. Do not redefine "zp" here. Base Page
+ * relocation is an OS/runtime concern and will be finalized with the process
+ * ABI and interrupt-entry design.
  */
 
 MEMORY {
-    /* LLVM-MOS imaginary registers are offsets in the active Base Page.
-     * Keep offset zero available and reserve $02-$FF for compiler temporaries.
-     * This region describes logical addresses only; it does not reserve a
-     * permanently fixed physical zero page.
-     */
-    zp      (rw)  : ORIGIN = 0x0002, LENGTH = 0x00fe
-
     /* Leave the final six bytes for NMI, RESET and IRQ/BRK vectors. */
     ram     (rwx) : ORIGIN = 0xe000, LENGTH = 0x1ffa
     vectors (r)   : ORIGIN = 0xfffa, LENGTH = 0x0006
@@ -40,17 +34,12 @@ SECTIONS {
     } > vectors
 }
 
-__rc0 = 0x0002;
-INCLUDE imag-regs.ld
-
 ASSERT(ADDR(.kernel_entry) == 0xe000,
        "kernel entry must remain at $E000");
 ASSERT(ADDR(.vectors) == 0xfffa,
        "kernel vectors must begin at $FFFA");
 ASSERT(SIZEOF(.vectors) == 6,
        "kernel must provide exactly NMI, RESET and IRQ/BRK vectors");
-ASSERT(__rc31 < 0x0100,
-       "LLVM-MOS imaginary registers overflow Base Page");
 
 OUTPUT_FORMAT {
     /* Emit the whole resident Page-7 image, including the vector tail. */
