@@ -1,2 +1,8 @@
 make.out
 make.err
+*.o
+*.obj
+*.map
+*.lst
+*.s.tmp
+*.ll
