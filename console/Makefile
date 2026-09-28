@@ -1,8 +1,8 @@
 ifeq ($(origin CC),default)
-CC := mos-mega65-clang
+CC := mos-common-clang
 endif
 CFLAGS ?= -Os -ffreestanding -fno-builtin -Wall -Wextra -mcpu=mos45gs02 -I../include
-LDFLAGS ?= -nostdlib -Wl,-T,link.ld
+LDFLAGS ?= -nostdlib
 TARGET := console.bin
 MAP := console.map
 LISTING := console.lst
