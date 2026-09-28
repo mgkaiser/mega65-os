@@ -8,9 +8,11 @@ LDFLAGS ?=
 # images rather than in the loader source directory.
 BUILD_DIR ?= ../build
 DEBUG_DIR := $(BUILD_DIR)/debug
+LIST_DIR := $(BUILD_DIR)/lst
+OBJDUMP ?= llvm-objdump
 TARGET := $(BUILD_DIR)/loader.prg
 MAP := $(BUILD_DIR)/loader.map
-LISTING := $(BUILD_DIR)/loader.lst
+LISTING := $(LIST_DIR)/loader.lst
 
 SOURCES := loader.c hyppo.s
 C_SOURCES := loader.c
@@ -25,6 +27,9 @@ $(BUILD_DIR):
 $(DEBUG_DIR): | $(BUILD_DIR)
 	mkdir -p $@
 
+$(LIST_DIR): | $(BUILD_DIR)
+	mkdir -p $@
+
 $(TARGET): $(SOURCES) | $(BUILD_DIR) $(DEBUG_DIR)
 	$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$(MAP) -o $@ $^
 	@# LLVM-MOS emits a companion ELF beside flat/PRG outputs when the linker
@@ -33,13 +38,13 @@ $(TARGET): $(SOURCES) | $(BUILD_DIR) $(DEBUG_DIR)
 	@test -f $(BUILD_DIR)/loader.prg.elf || (echo "ERROR: linker did not produce $(BUILD_DIR)/loader.prg.elf"; false)
 	mv $(BUILD_DIR)/loader.prg.elf $(DEBUG_DIR)/loader.elf
 
-listings: $(C_SOURCES) | $(BUILD_DIR)
-	@rm -f $(LISTING)
-	@for src in $(C_SOURCES); do \
-		echo "===== $$src =====" >> $(LISTING); \
-		$(CC) $(CFLAGS) -S -fverbose-asm -o - $$src >> $(LISTING); \
-		echo >> $(LISTING); \
-	done
+# Produce a source-interleaved disassembly of the exact linked ELF.  -S asks
+# llvm-objdump to show source lines beside the final machine instructions;
+# --line-numbers preserves file/line locations.  This is intentionally based
+# on the linked ELF, not a second compiler-only assembly pass, so addresses and
+# code match the runnable image.
+listings: $(TARGET) | $(LIST_DIR)
+	$(OBJDUMP) -d -S --line-numbers $(DEBUG_DIR)/loader.elf > $(LISTING)
 
 clean:
 	rm -f $(TARGET) $(MAP) $(LISTING) $(DEBUG_DIR)/loader.elf $(BUILD_DIR)/loader.prg.elf
