@@ -1,11 +1,11 @@
         .section .module_header,"a"
-        .globl _console_init
-        .globl _console_clear
-        .globl _console_write
+        .globl console_init
+        .globl console_clear
+        .globl console_write
         .word $364d
         .byte 1
         .byte 1
         .word __module_image_size
-        .word _console_init-$8000
-        .word _console_clear-$8000
-        .word _console_write-$8000
+        .word console_init-$8000
+        .word console_clear-$8000
+        .word console_write-$8000
