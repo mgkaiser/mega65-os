@@ -8,6 +8,7 @@ LDFLAGS ?= -nostdlib
 # supplies an absolute BUILD_DIR so every component deposits its products in
 # one place.  The fallback makes "make -C kernel" useful by itself.
 BUILD_DIR ?= ../build
+DEBUG_DIR := $(BUILD_DIR)/debug
 TARGET := $(BUILD_DIR)/kernel.bin
 MAP := $(BUILD_DIR)/kernel.map
 LISTING := $(BUILD_DIR)/kernel.lst
@@ -23,8 +24,16 @@ all: $(TARGET) listings
 $(BUILD_DIR):
 	mkdir -p $@
 
-$(TARGET): $(SOURCES) link.ld | $(BUILD_DIR)
+$(DEBUG_DIR): | $(BUILD_DIR)
+	mkdir -p $@
+
+$(TARGET): $(SOURCES) link.ld | $(BUILD_DIR) $(DEBUG_DIR)
 	$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$(MAP) -o $@ $(SOURCES)
+	@# LLVM-MOS emits a companion ELF beside flat/PRG outputs when the linker
+	@# script uses its custom OUTPUT_FORMAT. Keep the runnable image in build/
+	@# and move the exact-link debug companion under build/debug/.
+	@test -f $(BUILD_DIR)/kernel.bin.elf || (echo "ERROR: linker did not produce $(BUILD_DIR)/kernel.bin.elf"; false)
+	mv $(BUILD_DIR)/kernel.bin.elf $(DEBUG_DIR)/kernel.elf
 	@size=$$(wc -c < $@); \
 	if [ $$size -gt $(RESIDENT_LIMIT) ]; then \
 		echo "ERROR: resident kernel is $$size bytes; limit is $(RESIDENT_LIMIT)"; \
@@ -41,4 +50,4 @@ listings: $(C_SOURCES) | $(BUILD_DIR)
 	done
 
 clean:
-	rm -f $(TARGET) $(MAP) $(LISTING)
+	rm -f $(TARGET) $(MAP) $(LISTING) $(DEBUG_DIR)/kernel.elf $(BUILD_DIR)/kernel.bin.elf
