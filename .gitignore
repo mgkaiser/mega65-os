@@ -1,7 +1,15 @@
+# Build products are intentionally collected outside the source directories.
+/build/
+
+# Captured build logs.
 make.out
 make.err
+
+# Ignore stray compiler/linker intermediates if a developer invokes the
+# toolchain manually outside the normal Makefiles.
 *.o
 *.obj
+*.elf
 *.map
 *.lst
 *.s.tmp
