@@ -56,11 +56,25 @@ static void disable_rom_write_protect(void)
  */
 static void establish_native_ram_map(void)
 {
+    /*
+     * Do not list Z in the extended-asm clobber list.
+     *
+     * LLVM-MOS accepts 45GS02 instructions such as TAZ, but its Clang
+     * extended-asm register-name interface does not currently recognize "z"
+     * as a legal clobber name.  This routine has no live C values crossing
+     * the asm block, and the memory clobber prevents compiler memory motion,
+     * so documenting the Z modification here is sufficient for this
+     * bootstrap transition.
+     *
+     * When the loader eventually moves to an assembly transition stub, the
+     * entire MAP handoff can be expressed outside C and this compiler-facing
+     * wrinkle disappears.
+     */
     __asm__ volatile (
         "lda #$00\ntax\ntay\ntaz\nmap\n"
         "lda #$35\nsta $01\n"
         "lda #$47\nsta $d02f\nlda #$53\nsta $d02f\neom\n"
-        : : : "a", "x", "y", "z", "memory");
+        : : : "a", "x", "y", "memory");
 }
 
 /* Convert the loader's physical-placement knowledge into a versioned kernel
