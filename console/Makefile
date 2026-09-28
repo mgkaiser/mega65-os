@@ -8,9 +8,10 @@ LDFLAGS ?= -nostdlib
 BUILD_DIR ?= ../build
 DEBUG_DIR := $(BUILD_DIR)/debug
 LIST_DIR := $(BUILD_DIR)/lst
+MAP_DIR := $(BUILD_DIR)/map
 OBJDUMP ?= llvm-objdump
 TARGET := $(BUILD_DIR)/console.bin
-MAP := $(BUILD_DIR)/console.map
+MAP := $(MAP_DIR)/console.map
 LISTING := $(LIST_DIR)/console.lst
 
 SOURCES := header.s console.c
@@ -29,7 +30,10 @@ $(DEBUG_DIR): | $(BUILD_DIR)
 $(LIST_DIR): | $(BUILD_DIR)
 	mkdir -p $@
 
-$(TARGET): $(SOURCES) link.ld | $(BUILD_DIR) $(DEBUG_DIR)
+$(MAP_DIR): | $(BUILD_DIR)
+	mkdir -p $@
+
+$(TARGET): $(SOURCES) link.ld | $(BUILD_DIR) $(DEBUG_DIR) $(MAP_DIR)
 	$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$(MAP) -o $@ $(SOURCES)
 	@# LLVM-MOS emits a companion ELF beside flat/PRG outputs when the linker
 	@# script uses its custom OUTPUT_FORMAT. Keep the runnable image in build/
