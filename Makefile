@@ -46,7 +46,12 @@ install: all
 		echo "ERROR: mtools is required. Install it with: sudo apt install mtools"; \
 		exit 1; \
 	}
-	@mmd -i "$(SD_MTOOLS_IMAGE)" -s "$(SD_INSTALL_DIR)" 2>/dev/null || true
+	@# mmd does not reliably accept a trailing slash in the destination name.
+	@# Test first so a genuine mmd failure is not hidden by "|| true".
+	@if ! mdir -i "$(SD_MTOOLS_IMAGE)" "$(SD_INSTALL_DIR)" >/dev/null 2>&1; then \
+		echo "Creating $(SD_INSTALL_DIR) on MEGA65 SD image"; \
+		mmd -i "$(SD_MTOOLS_IMAGE)" "$(SD_INSTALL_DIR)"; \
+	fi
 	mcopy -i "$(SD_MTOOLS_IMAGE)" -o \
 		"$(BUILD_DIR)/kernel.bin" \
 		"$(BUILD_DIR)/console.bin" \
