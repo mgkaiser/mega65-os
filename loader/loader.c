@@ -150,9 +150,20 @@ int main(void)
      * manifest described by docs/boot.md § Handoff.
      */
     build_boot_info();
+    puts("L4 BOOTINFO");
 
     /* Cross the one-way boundary from loader environment into native OS RAM. */
     disable_rom_write_protect();
+    puts("L5 ROMWP");
+
+    /*
+     * L6 is deliberately written directly to screen RAM after MAP/EOM.
+     * The ROM/C runtime is no longer a trustworthy debugging dependency once
+     * the loader has established the native memory view.
+     */
     establish_native_ram_map();
+    ((volatile uint8_t *)0x0800u)[0] = 12; /* screen code for 'L' */
+    ((volatile uint8_t *)0x0800u)[1] = 54; /* screen code for '6' */
+
     start_kernel();
 }
