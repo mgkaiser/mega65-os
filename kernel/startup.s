@@ -32,6 +32,14 @@ kernel_start:
         sei
         cld
 
+        ; K1: first proof that execution reached the native kernel image.
+        ; Use raw screen codes and no C/runtime state so this remains useful
+        ; even if the failure is precisely the C-entry environment.
+        lda #$0b                    ; 'K'
+        sta $0803
+        lda #$31                    ; '1'
+        sta $0804
+
         ; TODO: establish the final kernel Base Page, hardware/soft stacks and MAP.
         ; TODO: zero .bss / initialise .data once linker symbols are frozen.
 
