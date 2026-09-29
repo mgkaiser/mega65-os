@@ -20,6 +20,8 @@ Prefer moving larger policy code out of the permanent nucleus into pageable/load
 
 Normal builds keep runnable images in `build/`, exact-link ELF companions in `build/debug/`, linker maps in `build/map/`, and source-interleaved disassembly in `build/lst/`. The listings are generated from the final linked ELF rather than from a separate compiler-only assembly pass, so optimization decisions can be based on the code and addresses that actually reached the image. Raw flat-image length is not sufficient to measure resident usage when the linker pads an extent.
 
+The resident-kernel build is deliberately more aggressive than ordinary modules: compile C with `-Oz`, LTO, per-function/per-data sections and line-table-only debug information, then link with section garbage collection. This permits whole-program removal and folding of bootstrap helpers while retaining source-correlated linked listings. These flags are a nucleus policy, not automatically a user-program ABI requirement.
+
 ## Concepts compiler should eventually understand
 
 - 16-bit near pointers
