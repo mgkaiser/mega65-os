@@ -10,7 +10,9 @@ SD_PARTITION_START_SECTOR ?= 2048
 SD_SECTOR_SIZE ?= 512
 SD_OFFSET := $(shell expr $(SD_PARTITION_START_SECTOR) \* $(SD_SECTOR_SIZE))
 SD_MTOOLS_IMAGE := $(SD_IMAGE)@@$(SD_OFFSET)
-SD_INSTALL_DIR ?= ::/mega65-os
+# Keep SD-visible names deliberately boring: uppercase DOS 8.3-compatible
+# names avoid depending on VFAT long-name/case handling in MEGA65 firmware.
+SD_INSTALL_DIR ?= ::/MEGA65OS
 
 # mtools operates directly on the FAT32 partition inside the disk image.  This is
 # preferable to mounting the image: install stays unprivileged and does not
@@ -34,9 +36,11 @@ kernel:
 # Install only the files the MEGA65 needs to boot/run.  Debug ELF, map and
 # source-interleaved listing artifacts remain on the development filesystem.
 #
-# mmd -s creates parent directories as needed and returns an error if the final
-# directory already exists, so tolerate that one operation.  mcopy -o then
-# replaces previous installed images, making repeated "make install" useful.
+# The install directory and installed filenames are explicitly uppercase and
+# DOS 8.3-compatible.  Do not rely on mtools to translate the lowercase Unix
+# build artifact names into names the MEGA65 firmware will see consistently.
+#
+# Repeated "make install" runs overwrite the three runtime files.
 install: all
 	@test -f "$(SD_IMAGE)" || { \
 		echo "ERROR: MEGA65 SD image not found: $(SD_IMAGE)"; \
@@ -54,9 +58,13 @@ install: all
 	fi
 	mcopy -i "$(SD_MTOOLS_IMAGE)" -o \
 		"$(BUILD_DIR)/kernel.bin" \
+		"$(SD_INSTALL_DIR)/KERNEL.BIN"
+	mcopy -i "$(SD_MTOOLS_IMAGE)" -o \
 		"$(BUILD_DIR)/console.bin" \
+		"$(SD_INSTALL_DIR)/CONSOLE.BIN"
+	mcopy -i "$(SD_MTOOLS_IMAGE)" -o \
 		"$(BUILD_DIR)/loader.prg" \
-		"$(SD_INSTALL_DIR)/"
+		"$(SD_INSTALL_DIR)/LOADER.PRG"
 
 clean:
 	@for d in $(COMPONENTS); do $(MAKE) -C $$d BUILD_DIR=$(BUILD_DIR) clean; done
