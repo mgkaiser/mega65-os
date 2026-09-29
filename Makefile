@@ -4,13 +4,18 @@ BUILD_DIR := $(CURDIR)/build
 # xemu-lgb MEGA65 SD-card image on the Windows host.  WSL exposes C: below
 # /mnt/c, so no Windows-side helper is required.
 SD_IMAGE ?= /mnt/c/Users/mgkai/AppData/Roaming/xemu-lgb/mega65/mega65.img
+# The FAT32 partition starts at sector 2048 in xemu's 4 GiB disk image.
+# mtools accepts IMAGE@@BYTE_OFFSET, so 2048 * 512 = 1,048,576 bytes.
+SD_PARTITION_START_SECTOR ?= 2048
+SD_SECTOR_SIZE ?= 512
+SD_OFFSET := $(shell expr $(SD_PARTITION_START_SECTOR) \* $(SD_SECTOR_SIZE))
+SD_MTOOLS_IMAGE := $(SD_IMAGE)@@$(SD_OFFSET)
 SD_INSTALL_DIR ?= ::/mega65-os
-MTOOLS ?=
 
-# mtools operates directly on the FAT filesystem inside the image.  This is
+# mtools operates directly on the FAT32 partition inside the disk image.  This is
 # preferable to mounting the image: install stays unprivileged and does not
 # leave a loop/mount behind.  Set MTOOLS_SKIP_CHECK=1 for MEGA65/xemu images
-# whose geometry metadata mtools considers unusual.
+# whose geometry metadata mtools considers unusual. The @@ byte offset skips the MBR.
 export MTOOLS_SKIP_CHECK := 1
 
 .PHONY: all clean install $(COMPONENTS)
@@ -41,8 +46,8 @@ install: all
 		echo "ERROR: mtools is required. Install it with: sudo apt install mtools"; \
 		exit 1; \
 	}
-	@mmd -i "$(SD_IMAGE)" -s "$(SD_INSTALL_DIR)" 2>/dev/null || true
-	mcopy -i "$(SD_IMAGE)" -o \
+	@mmd -i "$(SD_MTOOLS_IMAGE)" -s "$(SD_INSTALL_DIR)" 2>/dev/null || true
+	mcopy -i "$(SD_MTOOLS_IMAGE)" -o \
 		"$(BUILD_DIR)/kernel.bin" \
 		"$(BUILD_DIR)/console.bin" \
 		"$(BUILD_DIR)/loader.prg" \
