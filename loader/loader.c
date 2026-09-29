@@ -16,6 +16,7 @@
  * establish the native RAM view, and transfer control to $E000.
  */
 #include <stdint.h>
+#include <stdio.h>
 #include "bootinfo.h"
 
 #define KERNEL_ENTRY 0xe000u
@@ -128,11 +129,21 @@ static void start_kernel(void)
 
 int main(void)
 {
-    /* Load both boot-critical images while $0200 is still Hyppo scratch. */
-    set_filename("kernel.bin");
+    /*
+     * Keep early boot observable.  At this point the stock MEGA65 ROM screen
+     * environment is still intact, so use its C runtime console support rather
+     * than reaching into the native OS console module before that module has
+     * even been loaded.
+     *
+     * The names printed here deliberately match the uppercase DOS 8.3 names
+     * installed on the SD card by the top-level Makefile.
+     */
+    puts("KERNEL.BIN");
+    set_filename("KERNEL.BIN");
     if (!load_kernel_image()) halt();
 
-    set_filename("console.bin");
+    puts("CONSOLE.BIN");
+    set_filename("CONSOLE.BIN");
     if (!load_console_image()) halt();
 
     /* File loading is finished, so $0200 can become the loader->kernel
