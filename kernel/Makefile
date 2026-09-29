@@ -1,8 +1,17 @@
 ifeq ($(origin CC),default)
 CC := mos-common-clang
 endif
-CFLAGS ?= -Os -ffreestanding -fno-builtin -Wall -Wextra -mcpu=mos45gs02 -I../include
-LDFLAGS ?= -nostdlib
+# The resident nucleus has a hard 8 KiB budget. Optimize for bytes first.
+#
+# -Oz asks LLVM for minimum code size.
+# -flto lets LLVM optimize across C translation-unit boundaries.
+# -ffunction/data-sections plus --gc-sections lets the linker discard helpers
+# that become unreachable after whole-program optimization.
+# -gline-tables-only keeps enough source information for build/lst/*.lst
+# without asking the compiler to preserve richer debug state.
+CFLAGS ?= -Oz -flto -ffunction-sections -fdata-sections -gline-tables-only \
+          -ffreestanding -fno-builtin -Wall -Wextra -mcpu=mos45gs02 -I../include
+LDFLAGS ?= -nostdlib -flto -Wl,--gc-sections
 
 # Keep generated artifacts out of the source tree.  The top-level Makefile
 # supplies an absolute BUILD_DIR so every component deposits its products in
