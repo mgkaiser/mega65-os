@@ -46,6 +46,80 @@ Page 7 normally remains untranslated and permanently exposes the resident nucleu
 - **MAPHI replacement family:** enabled upper slots must share one displacement and therefore correspond to a contiguous physical layout.
 - **Top 8 KiB:** resident kernel nucleus.
 
+## MAP-aware physical allocation policy
+
+The allocator remains an **8 KiB page allocator**, but it treats each naturally
+aligned 32 KiB physical region as a **MAP neighborhood** containing four 8 KiB
+slots. This is an optimization structure, not a larger allocation quantum.
+
+Physical contiguity is unusually valuable on the MEGA65 because the four
+selectors in a MAP half share one displacement. Pages that are likely to be
+visible simultaneously should therefore be placed at physical offsets that
+match their intended logical-slot relationship. The allocator optimizes for
+**MAP compatibility**, not contiguity for its own sake.
+
+Each 32 KiB neighborhood can be represented by a four-bit occupancy mask.
+Allocation policy should preserve completely free neighborhoods when a request
+can instead consume suitable holes in an already-partial neighborhood. In
+other words: **fill damaged neighborhoods before damaging pristine ones.**
+This reduces fragmentation of the 32 KiB runs required for new process primary
+arenas.
+
+Preferred placement is:
+
+- Four-page / 32 KiB requests use an empty, naturally 32 KiB-aligned
+  neighborhood.
+- Three-page requests prefer three suitable pages within one neighborhood,
+  contiguous when the requested logical-slot pattern is contiguous.
+- Two-page requests prefer a compatible pair within one neighborhood. There is
+  no general requirement for 16 KiB alignment; relative 8 KiB slot position is
+  what matters to MAP.
+- One-page requests prefer a suitable free slot in an already-partial
+  neighborhood rather than consuming a slot in a pristine neighborhood.
+- Pages belonging to the same mapping-affinity group receive a strong
+  preference for the same neighborhood and for physical slot positions
+  matching the logical slots in which they are expected to appear.
+
+An allocation request may therefore eventually describe both a page count and
+a desired four-bit **slot mask** (plus an affinity identity). For example, a
+request for logical slots 0 and 2 should prefer physical positions 0 and 2 in
+one neighborhood rather than merely any two contiguous pages. That allows both
+pages to be exposed by one MAP displacement.
+
+Candidate neighborhoods should be scored rather than governed by rigid
+alignment rules. The preferred ordering is:
+
+1. exact MAP-slot compatibility;
+2. placement with the same mapping-affinity group;
+3. consumption of an already-fragmented neighborhood;
+4. useful physical contiguity;
+5. avoidance of breaking a pristine 32 KiB neighborhood;
+6. avoidance of awkward residual holes when otherwise equivalent.
+
+Affinity is a placement preference, not ownership of an entire neighborhood.
+Unrelated objects may share a neighborhood when doing so does not defeat a
+stronger MAP requirement.
+
+Objects larger than 32 KiB are composed of multiple MAP-sized cohorts. The
+allocator should prefer whole-object physical contiguity when inexpensive
+(which can also benefit DMA), but only each cohort's MAP-compatible placement
+is fundamental. The resulting hierarchy is therefore:
+
+    8 KiB    allocation / backing / residency / eviction quantum
+    32 KiB   MAP-affinity neighborhood
+    >32 KiB  object composed of one or more MAP neighborhoods/cohorts
+
+The allocator should maintain cheap visibility of pristine versus partial
+neighborhoods (for example free-32K and partial-32K lists plus the four-bit
+occupancy mask). This makes the common placement decisions inexpensive without
+requiring a conventional buddy allocator.
+
+This policy does **not** require 32 KiB alignment for a one-page allocation or
+16 KiB alignment for a two-page allocation. Such rigid alignment would reduce
+placement choices and can strand otherwise useful 8 KiB slots. Alignment is
+required where MAP semantics demand it; otherwise packing and slot affinity
+are the optimization goals.
+
 ## Memory tiers
 
     CPU logical mapping
