@@ -120,6 +120,115 @@ placement choices and can strand otherwise useful 8 KiB slots. Alignment is
 required where MAP semantics demand it; otherwise packing and slot affinity
 are the optimization goals.
 
+## DMA-assisted memory garbage collection and compaction
+
+The physical-memory subsystem may perform **garbage collection** when free
+8 KiB pages exist but fragmentation prevents a useful MAP-compatible
+allocation. In this context garbage collection means relocation and compaction
+of live, movable physical pages; it is not a tracing collector for discovering
+unreachable C objects.
+
+The collector's objective is not simply to increase the number of free pages.
+It should improve the *shape* of free memory by producing pristine 32 KiB MAP
+neighborhoods and by arranging affinity groups into physical slot patterns that
+can be exposed with one MAP displacement.
+
+DMAgic should perform the bulk movement whenever practical. A normal relocation
+is therefore an 8 KiB physical-page copy performed by DMA, followed by an
+atomic update of the owning extent's physical-backing metadata and release of
+the old page. Object identity must remain independent of physical placement so
+that relocating backing storage does not change handles or OS-managed far
+pointers.
+
+### Movable and pinned pages
+
+Only pages whose physical location can safely change are candidates for
+collection. Typical movable pages include pageable process pages, loadable
+modules, caches, filesystem buffers, and other objects reached through
+OS-managed metadata.
+
+Pages are pinned while relocation would invalidate an active hardware or
+software reference. At minimum this includes the resident nucleus, pages
+currently participating in DMA, hardware-visible buffers while active, pages
+temporarily exposed through a MAP acquisition, and any page for which a raw
+physical address has escaped the relocation-aware interfaces. Pinning may be
+temporary; releasing the final pin makes the page eligible for later
+compaction.
+
+The implementation must not publish the new physical location until the DMA
+copy has completed successfully. A page being moved is itself pinned against
+other mapping, eviction, or relocation operations for the duration of the
+transaction.
+
+### When to collect
+
+Compaction is **on demand, not continuous**. Normal allocation should remain
+cheap and should first use the MAP-aware placement policy above.
+
+A collection attempt is justified when all of the following are true:
+
+1. the allocator cannot directly satisfy the requested page count/slot mask or
+   required 32 KiB process arena;
+2. enough free 8 KiB capacity exists in aggregate that fragmentation, rather
+   than exhaustion, is preventing the allocation;
+3. a feasible relocation plan exists using movable pages;
+4. the expected result creates the required MAP-compatible placement or a
+   materially better free-memory shape; and
+5. the cost of the required moves is preferable to eviction/reload or failure
+   for the requesting operation.
+
+If aggregate free capacity is itself insufficient, the problem is pressure
+rather than fragmentation. The VM should use its eviction/backing-store policy
+instead of pointlessly compacting resident pages.
+
+The collector should also decline a collection whose required pages are pinned
+or whose relocation cost cannot produce the requested layout. Allocation may
+then fall back to another acceptable placement, eviction, or failure according
+to the caller's policy.
+
+### MAP-aware relocation planning
+
+Relocation planning should score the *resulting neighborhoods*, not merely
+minimize bytes copied. For example, moving two isolated pages may be worthwhile
+if doing so changes two partial neighborhoods into one full/compatible
+neighborhood and one pristine 32 KiB neighborhood.
+
+Preferred outcomes are, in order:
+
+1. construct the exact slot mask/contiguous 32 KiB arena required by a blocked
+   allocation;
+2. consolidate pages of the same mapping-affinity group into compatible
+   relative physical slots;
+3. create completely free 32 KiB neighborhoods;
+4. reduce the number of partially occupied neighborhoods;
+5. minimize the number of 8 KiB DMA moves among otherwise equivalent plans.
+
+This makes compaction deliberately **MAP-aware** rather than a generic
+left-packing operation.
+
+### Collection transaction
+
+A relocation should conceptually follow this sequence:
+
+    choose source page and destination page
+        -> verify source is movable and destination is reserved
+        -> pin source and destination
+        -> DMA-copy exactly one 8 KiB page
+        -> wait for successful DMA completion
+        -> atomically redirect owning metadata to the destination
+        -> release the old physical page
+        -> remove temporary pins
+
+Higher-level compaction consists of a planned sequence of these page
+transactions. The implementation must order moves so that no still-live source
+page is overwritten; a free 8 KiB page can be used as temporary workspace when
+a relocation graph contains a cycle.
+
+Collection should be interruptible between page moves where practical. The
+allocator does not need to transform all RAM into an ideal arrangement before
+returning: it should stop as soon as the blocked allocation can be satisfied.
+This bounds latency and avoids unnecessary DMA traffic.
+
 ## Memory tiers
 
     CPU logical mapping
